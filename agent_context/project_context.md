@@ -70,7 +70,8 @@ SoloPlanner/
 │               └── Tasks.java      # Controller (currently a stub)
 │
 ├── docker/
-│   └── docker_setup.yml            # Empty — Docker config not yet written
+│   ├── docker_setup.yml            # Docker Compose — PostgreSQL, Keycloak, Redis, Ollama
+│   └── init.sql                    # SQL run on first Postgres startup
 │
 └── frontend/
     └── planner_frontend/           # React + Vite app
@@ -131,11 +132,15 @@ The Kanban board UI is fully functional as a **standalone client-side app**.
   and contains only stub methods.
 - No JPA entities, repositories, database configuration, or AI integration exists yet.
 
+### ✅ Infrastructure — Docker Compose Configured
+
+- `docker/docker_setup.yml` is fully written. See **Section 9** for details.
+- `docker/init.sql` is mounted as the Postgres init script.
+
 ### ❌ Not Yet Started
 
-- Docker / Docker Compose setup
 - Database schema and migrations
-- Security / Authentication
+- Security / Authentication (Keycloak realm config)
 - AI chat integration
 - Backend ↔ Frontend API wiring
 
@@ -333,3 +338,87 @@ All agents and contributors must follow these rules:
 
 7. **AI Library Decision**: Before adding AI dependencies to `pom.xml`, decide between
    **Spring AI** and **LangChain4j** and document the choice here. Do not add both.
+
+---
+
+## 9. Infrastructure — Docker Compose
+
+File: `docker/docker_setup.yml`  
+Network: all services share the bridge network **`soloplanner_net`** and resolve each other by service name.
+
+### Services
+
+| Service       | Image                            | Container Name        | Host Port | Purpose                                      |
+| ------------- | -------------------------------- | --------------------- | --------- | -------------------------------------------- |
+| `postgres`    | `postgres:16-alpine`             | `planner_postgres`    | `5432`    | Primary relational database                  |
+| `keycloak`    | `quay.io/keycloak/keycloak:24.0` | `planner_keycloak`    | `8080`    | Authentication & Authorization (OIDC/OAuth2) |
+| `redis`       | `redis:7-alpine`                 | `planner_redis`       | `6379`    | Caching / session storage                    |
+| `ollama`      | `ollama/ollama:latest`           | `planner_ollama`      | `11434`   | Local LLM inference server                   |
+| `ollama_init` | `ollama/ollama:latest`           | `planner_ollama_init` | —         | One-shot sidecar: pulls the `gemma4` model   |
+
+### Credentials & Connection Strings
+
+> ⚠️ These are **local dev credentials only**. Never commit production secrets to source control.
+
+| Service    | Detail                | Value                                          |
+| ---------- | --------------------- | ---------------------------------------------- |
+| PostgreSQL | Database              | `soloplanner`                                  |
+| PostgreSQL | Username              | `soloplanner_user`                             |
+| PostgreSQL | Password              | `soloplanner_pass`                             |
+| PostgreSQL | JDBC URL              | `jdbc:postgresql://localhost:5432/soloplanner` |
+| Keycloak   | Admin user            | `admin` / `admin_pass`                         |
+| Keycloak   | Admin console         | `http://localhost:8080`                        |
+| Keycloak   | DB schema (inside PG) | `keycloak`                                     |
+| Redis      | Password              | `redis_pass`                                   |
+| Redis      | Connection            | `redis://localhost:6379`                       |
+| Ollama     | API base URL          | `http://localhost:11434`                       |
+| Ollama     | Model loaded          | `gemma4`                                       |
+
+### Named Volumes
+
+| Volume                  | Mounted In | Purpose                           |
+| ----------------------- | ---------- | --------------------------------- |
+| `planner_postgres_data` | `postgres` | Persists PostgreSQL data files    |
+| `planner_redis_data`    | `redis`    | Persists Redis RDB snapshots      |
+| `planner_ollama_data`   | `ollama`   | Persists downloaded model weights |
+
+### Startup Order & Health Checks
+
+- `postgres` exposes a `healthcheck` via `pg_isready`.
+- `keycloak` uses `depends_on: postgres: condition: service_healthy` — it will not start until Postgres is ready.
+- `redis` exposes a `healthcheck` via `redis-cli ping`.
+- `ollama_init` waits for the Ollama API to respond, then runs `ollama pull gemma4`, then exits (`restart: "no"`).
+
+### Spring Boot Configuration Snippet _(to add to `application.yml`)_
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/soloplanner
+    username: soloplanner_user
+    password: soloplanner_pass
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis_pass
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/<your-realm>
+
+ollama:
+  base-url: http://localhost:11434
+  model: gemma4
+```
+
+### How to Start
+
+```bash
+# From the repo root
+docker compose -f docker/docker_setup.yml up -d
+
+# Watch the model being pulled
+docker logs -f planner_ollama_init
+```
