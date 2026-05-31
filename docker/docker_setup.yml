@@ -1,0 +1,121 @@
+services:
+  # ─────────────────────────────────────────
+  # PostgreSQL
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: planner_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: soloplanner
+      POSTGRES_USER: soloplanner_user
+      POSTGRES_PASSWORD: soloplanner_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - planner_postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # <-- Add this line
+    networks:
+      - soloplanner_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soloplanner_user -d soloplanner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # Keycloak
+  # ─────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: planner_keycloak
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/soloplanner
+      KC_DB_USERNAME: soloplanner_user
+      KC_DB_PASSWORD: soloplanner_pass
+      KC_DB_SCHEMA: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin_pass
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - soloplanner_net
+
+  # ─────────────────────────────────────────
+  # Redis
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: planner_redis
+    restart: unless-stopped
+    command: redis-server --requirepass redis_pass --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - planner_redis_data:/data
+    networks:
+      - soloplanner_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_pass", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # Ollama (with Gemma 4 pull on startup)
+  # ─────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: planner_ollama
+    pull_policy: always # to make sure it is the latest version
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - planner_ollama_data:/root/.ollama
+    networks:
+      - soloplanner_net
+
+  # Sidecar: pulls gemma4 once Ollama is ready, then exits
+  ollama_init:
+    image: ollama/ollama:latest
+    container_name: planner_ollama_init
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+        echo 'Waiting for Ollama to be ready...';
+        until ollama list > /dev/null 2>&1; do sleep 3; done;
+        echo 'Pulling gemma4 model...';
+        ollama pull gemma4;
+        echo 'Done.';
+      "
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      - ollama
+    networks:
+      - soloplanner_net
+
+# ─────────────────────────────────────────
+# Named Volumes
+# ─────────────────────────────────────────
+volumes:
+  planner_postgres_data:
+  planner_redis_data:
+  planner_ollama_data:
+
+# ─────────────────────────────────────────
+# Network
+# ─────────────────────────────────────────
+networks:
+  soloplanner_net:
+    driver: bridge
