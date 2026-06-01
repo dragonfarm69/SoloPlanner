@@ -1,5 +1,8 @@
 package helper.project.planner_helper.Handler;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,5 +27,10 @@ public class UserHandler {
     public String deleteUser() {
         // do something
         return "deleted user";
+    }
+
+    @GetMapping("/groups")
+    public List<String> getUserGroups() {
+        return Arrays.asList("group 1", "group 2");
     }
 }
