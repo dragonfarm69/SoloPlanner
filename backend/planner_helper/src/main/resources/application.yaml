@@ -1,3 +1,24 @@
+server:
+  port: 8081
+
 spring:
   application:
     name: planner_helper
+
+  datasource:
+    # Connection URL (Replace 'planner_db' with your actual database name)
+    url: jdbc:postgresql://localhost:5432/soloplanner
+    username: soloplanner_user
+    password: soloplanner_pass
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    # 'update' automatically builds/modifies tables based on your Java Entities
+    hibernate:
+      ddl-auto: update
+
+    # Optional: Prints and formats clean SQL statements to your terminal for easy debugging
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true

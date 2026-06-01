@@ -1,4 +1,4 @@
-package Database;
+package helper.project.planner_helper.Database;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,8 +19,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import Types.Priority;
-import Types.TaskStatus;
+import helper.project.planner_helper.Types.Priority;
+import helper.project.planner_helper.Types.TaskStatus;
 
 @Entity
 @Table(name = "tasks")

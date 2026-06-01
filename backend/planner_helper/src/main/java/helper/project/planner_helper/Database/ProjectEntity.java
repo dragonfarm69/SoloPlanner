@@ -1,4 +1,4 @@
-package Database;
+package helper.project.planner_helper.Database;
 
 import java.time.Instant;
 import java.util.List;

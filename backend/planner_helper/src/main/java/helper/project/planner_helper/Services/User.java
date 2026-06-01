@@ -1,4 +1,4 @@
-package helper.Services;
+package helper.project.planner_helper.Services;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;

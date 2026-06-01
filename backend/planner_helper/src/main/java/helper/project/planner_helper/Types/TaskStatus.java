@@ -1,4 +1,4 @@
-package Types;
+package helper.project.planner_helper.Types;
 
 public enum TaskStatus {
     TODO,
