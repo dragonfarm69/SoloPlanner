@@ -1,29 +1,28 @@
 package helper.project.planner_helper.Handler;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class Tasks {
-    @GetMapping("/tasks")
-    public List<String> getAllTasks() {
-        return Arrays.asList("test", "test2");
+@RequestMapping("/user")
+public class UserHandler {
+    @GetMapping
+    public String getUsersInfo() {
+        return "this is user info";
     }
 
-    @PostMapping("/tasks")
-    public String createTask() {
+    @PostMapping
+    public String createNewUser() {
         // do something
-        return "task_id";
+        return "created new user";
     }
 
-    @DeleteMapping("/tasks")
-    public String deleteTask() {
+    @DeleteMapping
+    public String deleteUser() {
         // do something
-        return "deleted_id";
+        return "deleted user";
     }
 }
