@@ -10,9 +10,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import helper.project.planner_helper.Services.TaskService;
+
 @RestController
 @RequestMapping("/projects")
 public class ProjectHandler {
+    private final TaskService taskService;
+
+    public ProjectHandler(TaskService taskService) {
+        this.taskService = taskService;
+    }
+
     @GetMapping
     public String getAllProjects() {
         return "project alls";
