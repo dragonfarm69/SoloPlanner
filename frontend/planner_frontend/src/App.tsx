@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import BoardHeader from './components/BoardHeader';
 import KanbanBoard from './components/KanbanBoard';
 import TaskModal from './components/TaskModal';
+import AiChatPanel from './components/AiChatPanel';
 import type { Task, Priority } from './types';
 import type { TaskFormData } from './components/TaskModal';
 
@@ -12,6 +13,7 @@ export default function App() {
 
   // ─── UI State ───────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [filterPriority, setFilterPriority] = useState<Priority | null>(null);
 
   // ─── Modal State ────────────────────────
@@ -134,6 +136,21 @@ export default function App() {
           onDelete={editingTask ? handleDeleteTask : undefined}
           onClose={handleCloseModal}
         />
+      )}
+
+      {/* AI Chat */}
+      {!isChatOpen && (
+        <button
+          className="chat-fab"
+          onClick={() => setIsChatOpen(true)}
+          aria-label="Open AI chat"
+          id="chat-fab"
+        >
+          ✦
+        </button>
+      )}
+      {isChatOpen && (
+        <AiChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
     </>
   );
