@@ -1,10 +1,11 @@
 package helper.project.planner_helper.Services;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Repository.TaskRepository;
 
 @Service
@@ -16,15 +17,21 @@ public class TaskService {
         this.taskRepository = taskRepository;
     }
 
-    public String createTask(String task_name) {
-        return "Task id";
+    public List<TaskEntity> getUserTasks(UUID userId) {
+        return this.taskRepository.findTaskByUserId(userId);
     }
 
-    public String deleteTask(String task_id) {
-        return "DEleted task";
+    public TaskEntity createTask(TaskEntity task) {
+        return this.taskRepository.save(task);
     }
 
-    public List<String> getAllTask(String project_id) {
-        return Arrays.asList("null", "null");
+    public String deleteTask(UUID taskId) {
+        this.taskRepository.deleteById(taskId);
+
+        return "Deleted " + taskId.toString();
+    }
+
+    public List<TaskEntity> getProjectTasks(UUID projectId) {
+        return this.taskRepository.findTaskByProjectId(projectId);
     }
 }
