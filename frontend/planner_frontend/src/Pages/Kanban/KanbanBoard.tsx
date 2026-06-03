@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import type { Task, Column, Priority } from '../types';
-import type { BoardDispatch } from '../hooks/useBoard';
-import KanbanColumn from './KanbanColumn';
-import './KanbanBoard.css';
+import { useState, useRef, useEffect } from "react";
+import type { Task, Column, Priority } from "../../types";
+import type { BoardDispatch } from "../../hooks/useBoard";
+import KanbanColumn from "./KanbanColumn";
+import "./KanbanBoard.css";
 
 interface KanbanBoardProps {
   columns: Column[];
@@ -15,8 +15,14 @@ interface KanbanBoardProps {
 }
 
 const COLUMN_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b',
-  '#34d399', '#3b82f6', '#ef4444', '#14b8a6',
+  "#6366f1",
+  "#8b5cf6",
+  "#ec4899",
+  "#f59e0b",
+  "#34d399",
+  "#3b82f6",
+  "#ef4444",
+  "#14b8a6",
 ];
 
 export default function KanbanBoard({
@@ -29,7 +35,7 @@ export default function KanbanBoard({
   onAddTask,
 }: KanbanBoardProps) {
   const [isAddingColumn, setIsAddingColumn] = useState(false);
-  const [newColumnTitle, setNewColumnTitle] = useState('');
+  const [newColumnTitle, setNewColumnTitle] = useState("");
   const [newColumnColor, setNewColumnColor] = useState(COLUMN_COLORS[0]);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -50,7 +56,9 @@ export default function KanbanBoard({
           const q = searchQuery.toLowerCase();
           const matchesTitle = t.title.toLowerCase().includes(q);
           const matchesDesc = t.description.toLowerCase().includes(q);
-          const matchesLabel = t.labels.some((l) => l.toLowerCase().includes(q));
+          const matchesLabel = t.labels.some((l) =>
+            l.toLowerCase().includes(q),
+          );
           if (!matchesTitle && !matchesDesc && !matchesLabel) return false;
         }
         if (filterPriority && t.priority !== filterPriority) return false;
@@ -62,8 +70,8 @@ export default function KanbanBoard({
   function handleAddColumn() {
     const title = newColumnTitle.trim();
     if (!title) return;
-    dispatch({ type: 'ADD_COLUMN', payload: { title, color: newColumnColor } });
-    setNewColumnTitle('');
+    dispatch({ type: "ADD_COLUMN", payload: { title, color: newColumnColor } });
+    setNewColumnTitle("");
     setNewColumnColor(COLUMN_COLORS[0]);
     setIsAddingColumn(false);
   }
@@ -92,8 +100,8 @@ export default function KanbanBoard({
             value={newColumnTitle}
             onChange={(e) => setNewColumnTitle(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleAddColumn();
-              if (e.key === 'Escape') setIsAddingColumn(false);
+              if (e.key === "Enter") handleAddColumn();
+              if (e.key === "Escape") setIsAddingColumn(false);
             }}
             aria-label="New column name"
           />
@@ -104,7 +112,7 @@ export default function KanbanBoard({
               {COLUMN_COLORS.map((color) => (
                 <button
                   key={color}
-                  className={`add-column-color-swatch ${newColumnColor === color ? 'selected' : ''}`}
+                  className={`add-column-color-swatch ${newColumnColor === color ? "selected" : ""}`}
                   style={{ background: color }}
                   onClick={() => setNewColumnColor(color)}
                   aria-label={`Select color ${color}`}
@@ -117,7 +125,10 @@ export default function KanbanBoard({
             <button className="btn-add-column" onClick={handleAddColumn}>
               Add Column
             </button>
-            <button className="btn-cancel-column" onClick={() => setIsAddingColumn(false)}>
+            <button
+              className="btn-cancel-column"
+              onClick={() => setIsAddingColumn(false)}
+            >
               Cancel
             </button>
           </div>
@@ -128,7 +139,9 @@ export default function KanbanBoard({
           onClick={() => setIsAddingColumn(true)}
           id="add-column-btn"
         >
-          <span className="add-column-trigger-icon" aria-hidden="true">+</span>
+          <span className="add-column-trigger-icon" aria-hidden="true">
+            +
+          </span>
           Add Column
         </button>
       )}

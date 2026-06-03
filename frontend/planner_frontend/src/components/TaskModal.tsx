@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import type { Task, Column, Priority } from '../types';
-import { PRIORITY_CONFIG, LABEL_COLORS } from '../types';
-import './TaskModal.css';
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { Task, Column, Priority } from "../types";
+import { PRIORITY_CONFIG, LABEL_COLORS } from "../types";
+import "./TaskModal.css";
 
 interface TaskModalProps {
-  task: Task | null;            // null = creating new task
+  task: Task | null; // null = creating new task
   columns: Column[];
   defaultColumnId: string;
   onSave: (data: TaskFormData) => void;
@@ -20,7 +20,7 @@ export interface TaskFormData {
   columnId: string;
 }
 
-const priorities: Priority[] = ['low', 'medium', 'high', 'urgent'];
+const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 
 function getLabelColor(label: string): string {
   let hash = 0;
@@ -38,12 +38,14 @@ export default function TaskModal({
   onDelete,
   onClose,
 }: TaskModalProps) {
-  const [title, setTitle] = useState(task?.title ?? '');
-  const [description, setDescription] = useState(task?.description ?? '');
-  const [priority, setPriority] = useState<Priority>(task?.priority ?? 'medium');
+  const [title, setTitle] = useState(task?.title ?? "");
+  const [description, setDescription] = useState(task?.description ?? "");
+  const [priority, setPriority] = useState<Priority>(
+    task?.priority ?? "medium",
+  );
   const [labels, setLabels] = useState<string[]>(task?.labels ?? []);
   const [columnId, setColumnId] = useState(task?.columnId ?? defaultColumnId);
-  const [labelInput, setLabelInput] = useState('');
+  const [labelInput, setLabelInput] = useState("");
 
   const titleRef = useRef<HTMLInputElement>(null);
   const isEditing = task !== null;
@@ -56,15 +58,21 @@ export default function TaskModal({
   // Close on Escape
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
   const handleSubmit = useCallback(() => {
     if (!title.trim()) return;
-    onSave({ title: title.trim(), description: description.trim(), priority, labels, columnId });
+    onSave({
+      title: title.trim(),
+      description: description.trim(),
+      priority,
+      labels,
+      columnId,
+    });
   }, [title, description, priority, labels, columnId, onSave]);
 
   const handleAddLabel = useCallback(() => {
@@ -72,23 +80,34 @@ export default function TaskModal({
     if (trimmed && !labels.includes(trimmed)) {
       setLabels([...labels, trimmed]);
     }
-    setLabelInput('');
+    setLabelInput("");
   }, [labelInput, labels]);
 
   const handleRemoveLabel = useCallback(
     (label: string) => {
       setLabels(labels.filter((l) => l !== label));
     },
-    [labels]
+    [labels],
   );
 
   return (
     <div className="modal-overlay" onClick={onClose} id="task-modal-overlay">
-      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={isEditing ? 'Edit task' : 'Create task'}>
+      <div
+        className="modal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label={isEditing ? "Edit task" : "Create task"}
+      >
         {/* Header */}
         <div className="modal-header">
-          <h2 className="modal-title">{isEditing ? 'Edit Task' : 'New Task'}</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close modal">
+          <h2 className="modal-title">
+            {isEditing ? "Edit Task" : "New Task"}
+          </h2>
+          <button
+            className="modal-close"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
             ✕
           </button>
         </div>
@@ -97,7 +116,9 @@ export default function TaskModal({
         <div className="modal-body">
           {/* Title */}
           <div className="form-group">
-            <label className="form-label" htmlFor="task-title">Title</label>
+            <label className="form-label" htmlFor="task-title">
+              Title
+            </label>
             <input
               ref={titleRef}
               id="task-title"
@@ -106,14 +127,16 @@ export default function TaskModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSubmit();
+                if (e.key === "Enter") handleSubmit();
               }}
             />
           </div>
 
           {/* Description */}
           <div className="form-group">
-            <label className="form-label" htmlFor="task-description">Description</label>
+            <label className="form-label" htmlFor="task-description">
+              Description
+            </label>
             <textarea
               id="task-description"
               className="form-textarea"
@@ -126,7 +149,9 @@ export default function TaskModal({
           {/* Priority + Column row */}
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label" htmlFor="task-priority">Priority</label>
+              <label className="form-label" htmlFor="task-priority">
+                Priority
+              </label>
               <select
                 id="task-priority"
                 className="form-select"
@@ -134,13 +159,17 @@ export default function TaskModal({
                 onChange={(e) => setPriority(e.target.value as Priority)}
               >
                 {priorities.map((p) => (
-                  <option key={p} value={p}>{PRIORITY_CONFIG[p].label}</option>
+                  <option key={p} value={p}>
+                    {PRIORITY_CONFIG[p].label}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="task-column">Column</label>
+              <label className="form-label" htmlFor="task-column">
+                Column
+              </label>
               <select
                 id="task-column"
                 className="form-select"
@@ -148,7 +177,9 @@ export default function TaskModal({
                 onChange={(e) => setColumnId(e.target.value)}
               >
                 {columns.map((col) => (
-                  <option key={col.id} value={col.id}>{col.title}</option>
+                  <option key={col.id} value={col.id}>
+                    {col.title}
+                  </option>
                 ))}
               </select>
             </div>
@@ -156,7 +187,9 @@ export default function TaskModal({
 
           {/* Labels */}
           <div className="form-group">
-            <label className="form-label" htmlFor="task-labels">Labels</label>
+            <label className="form-label" htmlFor="task-labels">
+              Labels
+            </label>
             <input
               id="task-labels"
               className="form-input"
@@ -164,7 +197,7 @@ export default function TaskModal({
               value={labelInput}
               onChange={(e) => setLabelInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   handleAddLabel();
                 }
@@ -187,7 +220,7 @@ export default function TaskModal({
                       tabIndex={0}
                       aria-label={`Remove label ${label}`}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleRemoveLabel(label);
+                        if (e.key === "Enter") handleRemoveLabel(label);
                       }}
                     >
                       ✕
@@ -224,7 +257,7 @@ export default function TaskModal({
               disabled={!title.trim()}
               id="btn-save-task"
             >
-              {isEditing ? 'Save Changes' : 'Create Task'}
+              {isEditing ? "Save Changes" : "Create Task"}
             </button>
           </div>
         </div>

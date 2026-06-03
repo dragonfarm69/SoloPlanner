@@ -1,4 +1,4 @@
-import './BoardHeader.css';
+import "./BoardHeader.css";
 
 interface BoardHeaderProps {
   taskCount: number;
@@ -22,7 +22,9 @@ export default function BoardHeader({
 
       <div className="board-header-right">
         <div className="board-search">
-          <span className="board-search-icon" aria-hidden="true">🔍</span>
+          <span className="board-search-icon" aria-hidden="true">
+            🔍
+          </span>
           <input
             type="text"
             className="board-search-input"
@@ -34,12 +36,10 @@ export default function BoardHeader({
           />
         </div>
 
-        <button
-          className="btn-new-task"
-          onClick={onNewTask}
-          id="btn-new-task"
-        >
-          <span className="btn-new-task-icon" aria-hidden="true">+</span>
+        <button className="btn-new-task" onClick={onNewTask} id="btn-new-task">
+          <span className="btn-new-task-icon" aria-hidden="true">
+            +
+          </span>
           New Task
         </button>
       </div>

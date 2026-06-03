@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { draggable } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import type { Task } from '../types';
-import { PRIORITY_CONFIG, LABEL_COLORS } from '../types';
-import './TaskCard.css';
+import { useEffect, useRef, useState } from "react";
+import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import type { Task } from "../types";
+import { PRIORITY_CONFIG, LABEL_COLORS } from "../types";
+import "./TaskCard.css";
 
 interface TaskCardProps {
   task: Task;
@@ -16,7 +16,7 @@ function formatDate(timestamp: number): string {
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
 
-  if (diffMins < 1) return 'Just now';
+  if (diffMins < 1) return "Just now";
   if (diffMins < 60) return `${diffMins}m ago`;
 
   const diffHours = Math.floor(diffMins / 60);
@@ -25,7 +25,7 @@ function formatDate(timestamp: number): string {
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) return `${diffDays}d ago`;
 
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function getLabelColor(label: string): string {
@@ -48,7 +48,11 @@ export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
 
     return draggable({
       element: el,
-      getInitialData: () => ({ type: 'task', taskId: task.id, columnId: task.columnId }),
+      getInitialData: () => ({
+        type: "task",
+        taskId: task.id,
+        columnId: task.columnId,
+      }),
       onDragStart: () => setIsDragging(true),
       onDrop: () => setIsDragging(false),
     });
@@ -57,13 +61,13 @@ export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
   return (
     <div
       ref={ref}
-      className={`task-card ${isDragging ? 'is-dragging' : ''}`}
+      className={`task-card ${isDragging ? "is-dragging" : ""}`}
       id={`task-${task.id}`}
       onClick={() => onEdit(task)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onEdit(task);
         }
@@ -81,9 +85,7 @@ export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
       </div>
 
       {/* Description preview */}
-      {task.description && (
-        <p className="task-card-desc">{task.description}</p>
-      )}
+      {task.description && <p className="task-card-desc">{task.description}</p>}
 
       {/* Labels */}
       {task.labels.length > 0 && (
@@ -106,7 +108,10 @@ export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
         <div className="task-card-actions">
           <button
             className="task-card-action-btn"
-            onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(task);
+            }}
             title="Edit task"
             aria-label={`Edit ${task.title}`}
           >
@@ -114,7 +119,10 @@ export default function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
           </button>
           <button
             className="task-card-action-btn delete"
-            onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(task.id);
+            }}
             title="Delete task"
             aria-label={`Delete ${task.title}`}
           >

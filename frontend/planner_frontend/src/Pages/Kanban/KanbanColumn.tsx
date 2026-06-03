@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import type { Task, Column } from '../types';
-import type { BoardDispatch } from '../hooks/useBoard';
-import TaskCard from './TaskCard';
-import './KanbanColumn.css';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import type { Task, Column } from "../../types";
+import type { BoardDispatch } from "../../hooks/useBoard";
+import TaskCard from "../../components/TaskCard";
+import "./KanbanColumn.css";
 
 interface KanbanColumnProps {
   column: Column;
@@ -33,8 +33,8 @@ export default function KanbanColumn({
 
     return dropTargetForElements({
       element: el,
-      getData: () => ({ type: 'column', columnId: column.id }),
-      canDrop: ({ source }) => source.data.type === 'task',
+      getData: () => ({ type: "column", columnId: column.id }),
+      canDrop: ({ source }) => source.data.type === "task",
       onDragEnter: () => setIsDragOver(true),
       onDragLeave: () => setIsDragOver(false),
       onDrop: ({ source }) => {
@@ -46,12 +46,12 @@ export default function KanbanColumn({
         if (sourceColumnId === column.id) {
           // Move to the end of same column
           dispatch({
-            type: 'MOVE_TASK',
+            type: "MOVE_TASK",
             payload: { taskId, toColumnId: column.id, toIndex: tasks.length },
           });
         } else {
           dispatch({
-            type: 'MOVE_TASK',
+            type: "MOVE_TASK",
             payload: { taskId, toColumnId: column.id, toIndex: tasks.length },
           });
         }
@@ -70,7 +70,10 @@ export default function KanbanColumn({
   const handleSaveTitle = useCallback(() => {
     const trimmed = editTitle.trim();
     if (trimmed && trimmed !== column.title) {
-      dispatch({ type: 'UPDATE_COLUMN', payload: { id: column.id, title: trimmed } });
+      dispatch({
+        type: "UPDATE_COLUMN",
+        payload: { id: column.id, title: trimmed },
+      });
     }
     setIsEditingTitle(false);
   }, [editTitle, column.id, column.title, dispatch]);
@@ -78,24 +81,27 @@ export default function KanbanColumn({
   const handleDeleteColumn = useCallback(() => {
     if (tasks.length > 0) {
       const confirmed = window.confirm(
-        `Delete "${column.title}" and its ${tasks.length} task(s)?`
+        `Delete "${column.title}" and its ${tasks.length} task(s)?`,
       );
       if (!confirmed) return;
     }
-    dispatch({ type: 'DELETE_COLUMN', payload: { id: column.id } });
+    dispatch({ type: "DELETE_COLUMN", payload: { id: column.id } });
   }, [column.id, column.title, tasks.length, dispatch]);
 
   const handleDeleteTask = useCallback(
     (taskId: string) => {
-      dispatch({ type: 'DELETE_TASK', payload: { id: taskId } });
+      dispatch({ type: "DELETE_TASK", payload: { id: taskId } });
     },
-    [dispatch]
+    [dispatch],
   );
 
   return (
     <div className="kanban-column" id={`column-${column.id}`}>
       {/* Header */}
-      <div className="column-header" style={{ '--col-color': column.color } as React.CSSProperties}>
+      <div
+        className="column-header"
+        style={{ "--col-color": column.color } as React.CSSProperties}
+      >
         <style>{`#column-${column.id} .column-header::before { background: ${column.color}; }`}</style>
         <div className="column-header-left">
           {isEditingTitle ? (
@@ -106,8 +112,8 @@ export default function KanbanColumn({
               onChange={(e) => setEditTitle(e.target.value)}
               onBlur={handleSaveTitle}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveTitle();
-                if (e.key === 'Escape') setIsEditingTitle(false);
+                if (e.key === "Enter") handleSaveTitle();
+                if (e.key === "Escape") setIsEditingTitle(false);
               }}
               aria-label="Column title"
             />
@@ -140,7 +146,7 @@ export default function KanbanColumn({
       {/* Body — Drop Target */}
       <div
         ref={bodyRef}
-        className={`column-body ${isDragOver ? 'is-drag-over' : ''}`}
+        className={`column-body ${isDragOver ? "is-drag-over" : ""}`}
       >
         {tasks.length === 0 ? (
           <div className="column-body-empty">Drop tasks here</div>
@@ -163,7 +169,9 @@ export default function KanbanColumn({
           onClick={() => onAddTask(column.id)}
           id={`add-task-${column.id}`}
         >
-          <span className="column-add-icon" aria-hidden="true">+</span>
+          <span className="column-add-icon" aria-hidden="true">
+            +
+          </span>
           Add a card
         </button>
       </div>
