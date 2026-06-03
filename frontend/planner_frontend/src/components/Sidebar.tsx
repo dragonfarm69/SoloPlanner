@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import type { Priority } from "../types";
 import { PRIORITY_CONFIG } from "../types";
 import "./Sidebar.css";
@@ -18,14 +19,18 @@ export default function Sidebar({
   onFilterPriority,
 }: SidebarProps) {
   const activeTasks = totalTasks - completedTasks;
+  const navigate = useNavigate();
 
   return (
     <aside className="sidebar" id="sidebar">
       {/* Logo */}
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon" aria-hidden="true">
-          S
-        </div>
+      <div
+        className="sidebar-logo"
+        onClick={() => {
+          navigate("/profile");
+        }}
+      >
+        <div className="sidebar-logo-icon" aria-hidden="true"></div>
         <div className="sidebar-logo-text">
           <span className="sidebar-logo-title">SoloPlanner</span>
           <span className="sidebar-logo-subtitle">Personal Board</span>

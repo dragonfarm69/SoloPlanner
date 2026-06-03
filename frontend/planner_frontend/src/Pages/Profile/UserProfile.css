@@ -1,0 +1,386 @@
+.profile-page-container {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 32px;
+  padding: 40px;
+  min-height: 100vh;
+  background-color: #f4f6fc;
+  color: #1f2937;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-sizing: border-box;
+  flex: 1;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .profile-page-container {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+}
+
+/* LEFT COLUMN */
+.profile-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Identity Card */
+.profile-identity-card {
+  background-color: #111827;
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.profile-logo-container {
+  color: #9ca3af;
+  margin-bottom: 20px;
+}
+
+.profile-logo {
+  width: 24px;
+  height: 24px;
+}
+
+.profile-user-info-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.profile-avatar-container {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.profile-status-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  background-color: #10b981; /* bright green */
+  border: 2.5px solid #111827;
+  border-radius: 50%;
+}
+
+.profile-name-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.profile-display-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+  color: #ffffff;
+}
+
+.profile-handle {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+.profile-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.08);
+  margin-bottom: 20px;
+}
+
+.profile-member-since-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.member-since-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+}
+
+.member-since-date {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Stats Boxes */
+.profile-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.profile-stat-box {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.stat-number-blue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2563eb; /* Blue */
+}
+
+.stat-label-gray {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-top: 4px;
+}
+
+/* Groups List */
+.profile-groups-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-heading-dark {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 16px;
+}
+
+.groups-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-list-item {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.group-list-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+}
+
+.group-left-part {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.group-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.group-icon-wrapper.engineering {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.group-icon-wrapper.design {
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+
+.group-icon-wrapper.admin {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.group-item-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.group-arrow-caret {
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+}
+
+/* RIGHT COLUMN */
+.profile-right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.projects-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.project-card-item {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 640px) {
+  .project-card-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+.project-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.project-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.project-name-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.project-status-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.project-status-badge.active {
+  background-color: #eff6ff;
+  color: #1e40af;
+}
+
+.project-status-badge.in-review {
+  background-color: #f0fdf4;
+  color: #166534;
+}
+
+.project-status-badge.system {
+  background-color: #f1f5f9;
+  color: #374151;
+}
+
+.project-desc-text {
+  font-size: 0.95rem;
+  color: #4b5563;
+  margin: 0;
+}
+
+.project-card-progress-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 280px;
+}
+
+@media (max-width: 640px) {
+  .project-card-progress-section {
+    width: 100%;
+  }
+}
+
+.progress-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.progress-bar-track {
+  height: 6px;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+}
+
+.progress-bar-fill.active {
+  background-color: #2563eb;
+}
+
+.progress-bar-fill.in-review {
+  background-color: #0d9488;
+}
+
+.progress-bar-fill.system {
+  background-color: #1e293b;
+}
+
+.progress-tasks-left {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.progress-percentage-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  width: 44px;
+  text-align: right;
+}
+
+.progress-percentage-label.active {
+  color: #2563eb;
+}
+
+.progress-percentage-label.in-review {
+  color: #0d9488;
+}
+
+.progress-percentage-label.system {
+  color: #1e293b;
+}
