@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import helper.project.planner_helper.DTO.ProjectRequestRecord;
 import helper.project.planner_helper.DTO.ProjectResponseRecord;
+import helper.project.planner_helper.DTO.UserProjectResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Repository.ProjectRepository;
@@ -20,8 +21,10 @@ public class ProjectService {
         this.projectRepository = projectRepository;
     }
 
-    public List<ProjectEntity> getProjects(UUID userId) {
-        return this.projectRepository.findProjectByUserId(userId);
+    public List<UserProjectResponse> getProjects(UUID userId) {
+        List<ProjectEntity> savedProjects = this.projectRepository.findProjectByUserId(userId);
+
+        return savedProjects.stream().map(UserProjectResponse::new).toList();
     }
 
     public ProjectResponseRecord createProject(ProjectRequestRecord request) {

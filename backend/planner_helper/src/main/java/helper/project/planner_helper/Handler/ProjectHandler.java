@@ -10,10 +10,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import helper.project.planner_helper.DTO.ProjectRequestRecord;
 import helper.project.planner_helper.DTO.ProjectResponseRecord;
+import helper.project.planner_helper.DTO.UserProjectResponse;
+import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Services.ProjectService;
 import helper.project.planner_helper.Services.TaskService;
@@ -30,8 +33,8 @@ public class ProjectHandler {
     }
 
     @GetMapping
-    public String getAllProjects() {
-        return "project alls";
+    public List<UserProjectResponse> getProjects(@RequestParam("userId") UUID userId) {
+        return projectService.getProjects(userId);
     }
 
     @GetMapping("/{project_id}")

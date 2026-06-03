@@ -1,71 +1,16 @@
-import React from "react";
 import "./UserProfile.css";
-import { useNavigate } from "react-router-dom";
-
-interface GroupData {
-  id: string;
-  name: string;
-  iconType: "engineering" | "design" | "admin";
-}
-
-interface ProjectData {
-  id: string;
-  name: string;
-  status: "Active" | "In Review" | "System";
-  description: string;
-  tasksLeft: number;
-  progressPercent: number;
-}
-
-interface UserProfileData {
-  id: string;
-  username: string;
-  firstName: string;
-  lastName: string;
-  createdDate: string;
-  groups: GroupData[];
-  tasksCompleted: number;
-  projects: ProjectData[];
-}
+import type { GroupData, UserProfileData } from "../../types";
+import { ProjectCardItem } from "../../components/Projectcard";
+import { useEffect, useState } from "react";
+import type { UserProjectResponse } from "../../DTO/UserProjectResponse";
 
 const mockUser: UserProfileData = {
-  id: "d3b07384-d113-49cd-a5d6-8ee5c84f8841",
+  id: "74b145fb-330f-494a-b6c1-27cd8f06737a",
   username: "johndoe99",
   firstName: "John",
   lastName: "Doe",
   createdDate: "2026-06-03T15:30:00Z",
   tasksCompleted: 128,
-  groups: [
-    { id: "1", name: "Engineering Team", iconType: "engineering" },
-    { id: "2", name: "Product Design", iconType: "design" },
-    { id: "3", name: "SoloPlanner Admins", iconType: "admin" },
-  ],
-  projects: [
-    {
-      id: "p1",
-      name: "Engineering project",
-      status: "Active",
-      description: "Building the core backend infrastructure.",
-      tasksLeft: 24,
-      progressPercent: 65,
-    },
-    {
-      id: "p2",
-      name: "Product project",
-      status: "In Review",
-      description: "Redesigning core user flows.",
-      tasksLeft: 3,
-      progressPercent: 90,
-    },
-    {
-      id: "p3",
-      name: "Admin Console",
-      status: "System",
-      description: "Internal tooling for managing clusters.",
-      tasksLeft: 15,
-      progressPercent: 45,
-    },
-  ],
 };
 
 // Helper components for modularity and readability
@@ -175,50 +120,6 @@ function GroupListItem({ group }: GroupItemProps) {
   );
 }
 
-interface ProjectCardProps {
-  project: ProjectData;
-}
-
-function ProjectCardItem({ project }: ProjectCardProps) {
-  const statusClass = project.status.toLowerCase().replace(" ", "-");
-  const navigate = useNavigate();
-  return (
-    <div
-      className="project-card-item"
-      onClick={() => {
-        navigate("/");
-      }}
-    >
-      <div className="project-card-info">
-        <div className="project-title-row">
-          <h4 className="project-name-text">{project.name}</h4>
-          <span className={`project-status-badge ${statusClass}`}>
-            {project.status}
-          </span>
-        </div>
-        <p className="project-desc-text">{project.description}</p>
-      </div>
-
-      <div className="project-card-progress-section">
-        <div className="progress-bar-wrapper">
-          <div className="progress-bar-track">
-            <div
-              className={`progress-bar-fill ${statusClass}`}
-              style={{ width: `${project.progressPercent}%` }}
-            ></div>
-          </div>
-          <span className="progress-tasks-left">
-            {project.tasksLeft} tasks left
-          </span>
-        </div>
-        <span className={`progress-percentage-label ${statusClass}`}>
-          {project.progressPercent}%
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export default function UserProfile() {
   const formattedDate = new Date(mockUser.createdDate).toLocaleDateString(
     undefined,
@@ -228,6 +129,41 @@ export default function UserProfile() {
       day: "numeric",
     },
   );
+
+  const [projects, setProjects] = useState([]);
+
+  useEffect(() => {
+    async function getProjects() {
+      try {
+        const url = new URL("http://localhost:8081/projects");
+        url.searchParams.append("userId", mockUser.id.toString());
+        const response = await fetch(url.toString(), {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Error when tring to fetch project data");
+        }
+        const response_data = await response.json();
+        //map to type
+        const data: UserProjectResponse[] = response_data.map(
+          (project: UserProjectResponse) => ({
+            id: project.id,
+            title: project.title,
+            description: project.description,
+            ownerId: project.ownerId,
+          }),
+        );
+
+        setProjects(data);
+      } catch (e) {
+        console.error("Error when tring to fetch project data", e);
+      }
+    }
+    getProjects();
+  }, []);
 
   return (
     <div className="profile-page-container">
@@ -263,33 +199,32 @@ export default function UserProfile() {
         </div>
 
         {/* Stats Grid */}
-        <div className="profile-stats-grid">
+        {/* <div className="profile-stats-grid">
           <div className="profile-stat-box">
             <span className="stat-number-blue">{mockUser.tasksCompleted}</span>
             <span className="stat-label-gray">Tasks Completed</span>
           </div>
           <div className="profile-stat-box">
-            <span className="stat-number-blue">{mockUser.projects.length}</span>
             <span className="stat-label-gray">Active Projects</span>
           </div>
-        </div>
+        </div> */}
 
         {/* Groups List */}
-        <div className="profile-groups-section">
+        {/* <div className="profile-groups-section">
           <h3 className="section-heading-dark">Groups</h3>
           <div className="groups-stack">
             {mockUser.groups.map((group) => (
               <GroupListItem key={group.id} group={group} />
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Right Column */}
       <div className="profile-right-column">
         <h3 className="section-heading-dark">Current Projects</h3>
         <div className="projects-stack">
-          {mockUser.projects.map((project) => (
+          {projects.map((project) => (
             <ProjectCardItem key={project.id} project={project} />
           ))}
         </div>

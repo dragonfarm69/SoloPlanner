@@ -1,15 +1,15 @@
-import { useReducer, useEffect, useCallback } from 'react';
-import type { Board, Task, Column } from '../types';
+import { useReducer, useEffect, useCallback } from "react";
+import type { Board, Task, Column } from "../types";
 
 // ─── Constants ────────────────────────────────────────
 
-const STORAGE_KEY = 'soloplanner-board';
+const STORAGE_KEY = "soloplanner-board";
 
 const DEFAULT_COLUMNS: Column[] = [
-  { id: 'col-todo', title: 'To Do', order: 0, color: '#6366f1' },
-  { id: 'col-progress', title: 'In Progress', order: 1, color: '#f59e0b' },
-  { id: 'col-review', title: 'In Review', order: 2, color: '#8b5cf6' },
-  { id: 'col-done', title: 'Done', order: 3, color: '#34d399' },
+  { id: "col-todo", title: "To Do", order: 0, color: "#6366f1" },
+  { id: "col-progress", title: "In Progress", order: 1, color: "#f59e0b" },
+  { id: "col-review", title: "In Review", order: 2, color: "#8b5cf6" },
+  { id: "col-done", title: "Done", order: 3, color: "#34d399" },
 ];
 
 const DEFAULT_BOARD: Board = {
@@ -20,7 +20,7 @@ const DEFAULT_BOARD: Board = {
 // ─── ID Generator ─────────────────────────────────────
 
 let counter = 0;
-export function generateId(prefix: string = 'item'): string {
+export function generateId(prefix: string = "item"): string {
   counter += 1;
   return `${prefix}-${Date.now()}-${counter}`;
 }
@@ -28,13 +28,19 @@ export function generateId(prefix: string = 'item'): string {
 // ─── Action Types ─────────────────────────────────────
 
 type BoardAction =
-  | { type: 'ADD_TASK'; payload: Omit<Task, 'id' | 'order' | 'createdAt' | 'updatedAt'> }
-  | { type: 'UPDATE_TASK'; payload: { id: string } & Partial<Task> }
-  | { type: 'DELETE_TASK'; payload: { id: string } }
-  | { type: 'MOVE_TASK'; payload: { taskId: string; toColumnId: string; toIndex: number } }
-  | { type: 'ADD_COLUMN'; payload: { title: string; color: string } }
-  | { type: 'UPDATE_COLUMN'; payload: { id: string } & Partial<Column> }
-  | { type: 'DELETE_COLUMN'; payload: { id: string } };
+  | {
+      type: "ADD_TASK";
+      payload: Omit<Task, "id" | "order" | "createdAt" | "updatedAt">;
+    }
+  | { type: "UPDATE_TASK"; payload: { id: string } & Partial<Task> }
+  | { type: "DELETE_TASK"; payload: { id: string } }
+  | {
+      type: "MOVE_TASK";
+      payload: { taskId: string; toColumnId: string; toIndex: number };
+    }
+  | { type: "ADD_COLUMN"; payload: { title: string; color: string } }
+  | { type: "UPDATE_COLUMN"; payload: { id: string } & Partial<Column> }
+  | { type: "DELETE_COLUMN"; payload: { id: string } };
 
 // ─── Helpers ──────────────────────────────────────────
 
@@ -57,11 +63,14 @@ function boardReducer(state: Board, action: BoardAction): Board {
   const now = Date.now();
 
   switch (action.type) {
-    case 'ADD_TASK': {
-      const columnTasks = getTasksForColumn(state.tasks, action.payload.columnId);
+    case "ADD_TASK": {
+      const columnTasks = getTasksForColumn(
+        state.tasks,
+        action.payload.columnId,
+      );
       const newTask: Task = {
         ...action.payload,
-        id: generateId('task'),
+        id: generateId("task"),
         order: columnTasks.length,
         createdAt: now,
         updatedAt: now,
@@ -69,24 +78,24 @@ function boardReducer(state: Board, action: BoardAction): Board {
       return { ...state, tasks: [...state.tasks, newTask] };
     }
 
-    case 'UPDATE_TASK': {
+    case "UPDATE_TASK": {
       const { id, ...updates } = action.payload;
       return {
         ...state,
         tasks: state.tasks.map((t) =>
-          t.id === id ? { ...t, ...updates, updatedAt: now } : t
+          t.id === id ? { ...t, ...updates, updatedAt: now } : t,
         ),
       };
     }
 
-    case 'DELETE_TASK': {
+    case "DELETE_TASK": {
       const task = state.tasks.find((t) => t.id === action.payload.id);
       if (!task) return state;
       const filtered = state.tasks.filter((t) => t.id !== action.payload.id);
       return { ...state, tasks: reorderTasksInColumn(filtered, task.columnId) };
     }
 
-    case 'MOVE_TASK': {
+    case "MOVE_TASK": {
       const { taskId, toColumnId, toIndex } = action.payload;
       const task = state.tasks.find((t) => t.id === taskId);
       if (!task) return state;
@@ -104,7 +113,12 @@ function boardReducer(state: Board, action: BoardAction): Board {
       const clampedIndex = Math.min(toIndex, destTasks.length);
 
       // Insert the moved task
-      const movedTask: Task = { ...task, columnId: toColumnId, order: clampedIndex, updatedAt: now };
+      const movedTask: Task = {
+        ...task,
+        columnId: toColumnId,
+        order: clampedIndex,
+        updatedAt: now,
+      };
 
       // Shift subsequent tasks in the destination column
       updatedTasks = updatedTasks.map((t) => {
@@ -118,9 +132,9 @@ function boardReducer(state: Board, action: BoardAction): Board {
       return { ...state, tasks: updatedTasks };
     }
 
-    case 'ADD_COLUMN': {
+    case "ADD_COLUMN": {
       const newColumn: Column = {
-        id: generateId('col'),
+        id: generateId("col"),
         title: action.payload.title,
         color: action.payload.color,
         order: state.columns.length,
@@ -128,17 +142,17 @@ function boardReducer(state: Board, action: BoardAction): Board {
       return { ...state, columns: [...state.columns, newColumn] };
     }
 
-    case 'UPDATE_COLUMN': {
+    case "UPDATE_COLUMN": {
       const { id, ...updates } = action.payload;
       return {
         ...state,
         columns: state.columns.map((c) =>
-          c.id === id ? { ...c, ...updates } : c
+          c.id === id ? { ...c, ...updates } : c,
         ),
       };
     }
 
-    case 'DELETE_COLUMN': {
+    case "DELETE_COLUMN": {
       return {
         ...state,
         columns: state.columns
@@ -180,7 +194,7 @@ export function useBoard() {
 
   const getColumnTasks = useCallback(
     (columnId: string) => getTasksForColumn(board.tasks, columnId),
-    [board.tasks]
+    [board.tasks],
   );
 
   return { board, dispatch, getColumnTasks };
