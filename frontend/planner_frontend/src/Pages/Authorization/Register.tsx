@@ -16,7 +16,6 @@ function validatePassword(password: string): PasswordStrength {
   if (!password) return { errors: [], strength: null };
   const errors: string[] = [];
   if (password.length < 12) errors.push("At least 12 characters");
-  if (!/[A-Z]/.test(password)) errors.push("At least one uppercase letter");
   if (!/[0-9]/.test(password)) errors.push("At least one number");
   if (!/[^A-Za-z0-9]/.test(password))
     errors.push("At least one special character");
@@ -63,6 +62,25 @@ function RegisterForm({ isRegistering }: { isRegistering: () => void }) {
     if (!isFormValid) return;
 
     try {
+      const payload = {
+        username,
+        email,
+        password,
+        firstName,
+        lastName,
+      };
+
+      const response = await fetch("http://localhost:8081/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
     } catch (error) {
       alert(`Registration failed: ${error}`);
     }

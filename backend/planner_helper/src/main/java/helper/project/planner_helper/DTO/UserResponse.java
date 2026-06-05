@@ -1,8 +1,8 @@
 package helper.project.planner_helper.DTO;
 
-public record UserResponseRecord(String username,
+public record UserResponse(String username,
         String firstName,
         String lastName,
-        String emai) {
-
+        String email,
+        String id) {
 }

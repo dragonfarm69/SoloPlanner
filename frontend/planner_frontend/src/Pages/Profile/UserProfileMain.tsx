@@ -13,6 +13,24 @@ const mockUser: UserProfileData = {
   tasksCompleted: 128,
 };
 
+const mockGroupData: GroupData = {
+  id: "hello",
+  name: "hello",
+  iconType: "engineering",
+};
+
+const mockGroupData2: GroupData = {
+  id: "hello",
+  name: "hello",
+  iconType: "design",
+};
+
+const mockGroupData3: GroupData = {
+  id: "hello",
+  name: "hello",
+  iconType: "admin",
+};
+
 // Helper components for modularity and readability
 function LogoIcon() {
   return (
@@ -136,7 +154,7 @@ export default function UserProfile() {
     async function getProjects() {
       try {
         const url = new URL("http://localhost:8081/projects");
-        url.searchParams.append("userId", mockUser.id.toString());
+        url.searchParams.append("userId", localStorage.getItem("user_id")!);
         const response = await fetch(url.toString(), {
           method: "GET",
           headers: {
@@ -177,16 +195,19 @@ export default function UserProfile() {
             <div className="profile-avatar-container">
               <img
                 src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                alt={`${mockUser.firstName} ${mockUser.lastName}`}
+                alt={`${localStorage.getItem("firstName")} ${localStorage.getItem("lastName")}`}
                 className="profile-avatar-img"
               />
               <span className="profile-status-dot"></span>
             </div>
             <div className="profile-name-stack">
               <h2 className="profile-display-name">
-                {mockUser.firstName} {mockUser.lastName}
+                {localStorage.getItem("firstName")}{" "}
+                {localStorage.getItem("lastName")}
               </h2>
-              <span className="profile-handle">@{mockUser.username}</span>
+              <span className="profile-handle">
+                @{localStorage.getItem("username")}
+              </span>
             </div>
           </div>
 
@@ -199,25 +220,28 @@ export default function UserProfile() {
         </div>
 
         {/* Stats Grid */}
-        {/* <div className="profile-stats-grid">
+        <div className="profile-stats-grid">
           <div className="profile-stat-box">
-            <span className="stat-number-blue">{mockUser.tasksCompleted}</span>
+            <span className="stat-number-blue">155</span>
             <span className="stat-label-gray">Tasks Completed</span>
           </div>
           <div className="profile-stat-box">
-            <span className="stat-label-gray">Active Projects</span>
+            <span className="stat-number-blue">50</span>
+            <span className="stat-label-gray">Projects</span>
           </div>
-        </div> */}
+        </div>
 
         {/* Groups List */}
-        {/* <div className="profile-groups-section">
+        <div className="profile-groups-section">
           <h3 className="section-heading-dark">Groups</h3>
           <div className="groups-stack">
-            {mockUser.groups.map((group) => (
-              <GroupListItem key={group.id} group={group} />
-            ))}
+            <GroupListItem key={"hello"} group={mockGroupData} />
+            <GroupListItem key={"hello"} group={mockGroupData2} />
+            <GroupListItem key={"hello"} group={mockGroupData} />
+            <GroupListItem key={"hello"} group={mockGroupData3} />
+            <GroupListItem key={"hello"} group={mockGroupData} />
           </div>
-        </div> */}
+        </div>
       </div>
 
       {/* Right Column */}

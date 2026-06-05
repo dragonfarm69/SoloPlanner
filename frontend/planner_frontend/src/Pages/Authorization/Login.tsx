@@ -1,36 +1,20 @@
-import { useState } from "react";
 import "./Auth.css";
-
 function LoginForm({ isRegistering }: { isRegistering: () => void }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const handleOnClick = async () => {
+    const params = new URLSearchParams({
+      client_id: "authentication-cli",
+      response_type: "code",
+      scope: "openid profile email",
+      redirect_uri: "http://localhost:8081/auth/login",
+    });
 
-  const handleOnClick = async () => {};
+    window.location.href =
+      "http://localhost:8080/realms/planner/protocol/openid-connect/auth?" +
+      params.toString();
+  };
 
   return (
     <>
-      <div className="form-field">
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          placeholder="Enter your email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-      <div className="form-field">
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          placeholder="Enter your password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
       <button className="login-button" type="button" onClick={handleOnClick}>
         <span>Login</span>
       </button>

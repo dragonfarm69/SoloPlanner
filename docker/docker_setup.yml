@@ -76,7 +76,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: planner_ollama
-    pull_policy: always # to make sure it is the latest version
+    # pull_policy: always # to make sure it is the latest version
     restart: unless-stopped
     ports:
       - "11434:11434"

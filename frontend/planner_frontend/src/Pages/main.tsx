@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useBoard } from "../hooks/useBoard";
 import Sidebar from "../components/Sidebar";
 import BoardHeader from "../components/BoardHeader";

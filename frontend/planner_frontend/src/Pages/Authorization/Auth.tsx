@@ -18,13 +18,10 @@ function AuthPage() {
         >
           <div className="authentication-card">
             <div className="authentication-header">
-              <img src={"/src/assets/app_icon.png"} className="app-icon"></img>
+              {/* <img src={"/src/assets/app_icon.png"} className="app-icon"></img> */}
               {isRegistering ? (
                 <div>
                   <h1 className="authentication-title">Creating account</h1>
-                  <p className="authentication-subtitle">
-                    We're excited to have you join us!
-                  </p>
                 </div>
               ) : (
                 <h1 className="authentication-title">Welcome back!</h1>

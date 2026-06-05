@@ -1,9 +1,13 @@
 package helper.project.planner_helper.Handler;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,7 +16,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import helper.project.planner_helper.DTO.UserRequestRecord;
+import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Services.UserService;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/user")
@@ -23,9 +30,24 @@ public class UserHandler {
         this.userService = userService;
     }
 
-    @GetMapping
-    public String getUsersInfo() {
-        return "this is user info";
+    @GetMapping("/me")
+    public ResponseEntity<UserEntity> getUsersInfo(@CookieValue(name = "access_token") String accessToken) {
+        // get id in access_token
+        String[] chunks = accessToken.split("\\.");
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+
+        String payload = new String(decoder.decode(chunks[1]));
+        ObjectMapper mapper = new ObjectMapper();
+
+        Map<String, Object> payloadMap = mapper.readValue(payload, new TypeReference<Map<String, Object>>() {
+        });
+
+        String userId = (String) payloadMap.get("sub");
+
+        System.out.println("user id: " + userId);
+
+        UserEntity user = this.userService.findUser(userId);
+        return ResponseEntity.ok().body(user);
     }
 
     @PostMapping

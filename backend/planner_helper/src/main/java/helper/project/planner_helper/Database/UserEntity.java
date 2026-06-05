@@ -23,6 +23,9 @@ public class UserEntity {
     @Column(name = "id", updatable = false, unique = true, nullable = false)
     private UUID id;
 
+    @Column(name = "identity", updatable = false, unique = true, nullable = false)
+    private String identity; // The id from keycloak
+
     @Column(nullable = false)
     private String username;
 
@@ -47,6 +50,14 @@ public class UserEntity {
     private List<TaskEntity> tasks = new ArrayList<>();
 
     // GETTERS and SETTERS
+    public String getIdentity() {
+        return this.identity;
+    }
+
+    public void setIdentity(String identity) {
+        this.identity = identity;
+    }
+
     public UUID getId() {
         return id;
     }
