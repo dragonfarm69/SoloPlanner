@@ -35,7 +35,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<UserProfile />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/project" element={<MainPage />} />
+          <Route path="/projects/:projectId" element={<MainPage />} />
         </Routes>
       </BrowserRouter>
     </>

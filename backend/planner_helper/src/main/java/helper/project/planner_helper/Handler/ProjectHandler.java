@@ -43,7 +43,7 @@ public class ProjectHandler {
     }
 
     @GetMapping("/{project_id}/tasks")
-    public List<TaskEntity> getAllTasks(@PathVariable("project_id") UUID projectId) {
+    public List<TaskEntity> getTasks(@PathVariable("project_id") UUID projectId) {
         return this.taskService.getProjectTasks(projectId);
     }
 

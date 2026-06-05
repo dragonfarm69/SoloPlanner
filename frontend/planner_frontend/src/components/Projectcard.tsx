@@ -12,7 +12,7 @@ export function ProjectCardItem({ project }: ProjectCardProps) {
     <div
       className="project-card-item"
       onClick={() => {
-        navigate("/");
+        navigate(`/projects/${project.id}`);
       }}
     >
       <div className="project-card-info">
@@ -22,13 +22,11 @@ export function ProjectCardItem({ project }: ProjectCardProps) {
         <p className="project-desc-text">{project.description}</p>
       </div>
 
-      {/* <div className="project-card-progress-section">
+      <div className="project-card-progress-section">
         <div className="progress-bar-wrapper">
-          <span className="progress-tasks-left">
-            {project.tasksLeft} tasks left
-          </span>
+          <span className="progress-tasks-left">100 tasks left</span>
         </div>
-      </div> */}
+      </div>
     </div>
   );
 }

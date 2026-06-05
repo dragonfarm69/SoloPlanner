@@ -7,6 +7,7 @@ import TaskModal from "../components/TaskModal";
 import AiChatPanel from "../components/AiChatPanel";
 import type { Task, Priority } from "../types";
 import type { TaskFormData } from "../components/TaskModal";
+import { useParams } from "react-router-dom";
 
 export default function MainPage() {
   const { board, dispatch, getColumnTasks } = useBoard();
@@ -95,6 +96,28 @@ export default function MainPage() {
     },
     [dispatch, handleCloseModal],
   );
+
+  const { projectId } = useParams<{ projectId: string }>();
+  useEffect(() => {
+    async function fetchTasks() {
+      try {
+        const url = `http://localhost:8081/projects/${projectId}/tasks`;
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const data = await response.json();
+        console.log("tasks: ", data);
+      } catch (error) {
+        console.log("error when fetching task: ", error);
+      }
+    }
+    fetchTasks();
+  }, [projectId]);
 
   return (
     <>

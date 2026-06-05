@@ -3,6 +3,10 @@ import type { GroupData, UserProfileData } from "../../types";
 import { ProjectCardItem } from "../../components/Projectcard";
 import { useEffect, useState } from "react";
 import type { UserProjectResponse } from "../../DTO/UserProjectResponse";
+import ProjectModal, {
+  type ProjectFormData,
+} from "../../components/ProjectModal";
+import { useParams } from "react-router-dom";
 
 const mockUser: UserProfileData = {
   id: "74b145fb-330f-494a-b6c1-27cd8f06737a",
@@ -149,6 +153,7 @@ export default function UserProfile() {
   );
 
   const [projects, setProjects] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     async function getProjects() {
@@ -183,8 +188,37 @@ export default function UserProfile() {
     getProjects();
   }, []);
 
+  const { projectId } = useParams<{ projectId: string }>();
+
+  const createNewProject = async (data: ProjectFormData) => {
+    console.log("data: ", data);
+    try {
+      const url = new URL(`http://localhost:8081/projects/${projectId}/tasks`);
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      const response_data = await response.json();
+      console.log(response_data);
+    } catch (e) {
+      console.error("Error when trying to create new project: ", e);
+    }
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="profile-page-container">
+      {isModalOpen && (
+        <ProjectModal
+          project={null}
+          onSave={(data: ProjectFormData) => createNewProject(data)}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
       {/* Left Column */}
       <div className="profile-left-column">
         {/* Dark Profile Header Card */}
@@ -235,18 +269,33 @@ export default function UserProfile() {
         <div className="profile-groups-section">
           <h3 className="section-heading-dark">Groups</h3>
           <div className="groups-stack">
-            <GroupListItem key={"hello"} group={mockGroupData} />
-            <GroupListItem key={"hello"} group={mockGroupData2} />
-            <GroupListItem key={"hello"} group={mockGroupData} />
-            <GroupListItem key={"hello"} group={mockGroupData3} />
-            <GroupListItem key={"hello"} group={mockGroupData} />
+            <GroupListItem key={"hello1"} group={mockGroupData} />
+            <GroupListItem key={"hello2"} group={mockGroupData2} />
+            <GroupListItem key={"hello3"} group={mockGroupData} />
+            <GroupListItem key={"hello4"} group={mockGroupData3} />
+            <GroupListItem key={"hello5"} group={mockGroupData} />
           </div>
         </div>
       </div>
 
       {/* Right Column */}
       <div className="profile-right-column">
-        <h3 className="section-heading-dark">Current Projects</h3>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <h3 className="section-heading-dark">Current Projects</h3>
+          <button
+            className="section-heading-dark"
+            onClick={() => setIsModalOpen(true)}
+          >
+            +
+          </button>
+        </div>
         <div className="projects-stack">
           {projects.map((project) => (
             <ProjectCardItem key={project.id} project={project} />
