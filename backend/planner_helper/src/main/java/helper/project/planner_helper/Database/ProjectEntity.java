@@ -46,6 +46,9 @@ public class ProjectEntity {
     @OneToMany(mappedBy = "project")
     private List<TaskEntity> tasks;
 
+    @OneToMany(mappedBy = "project")
+    private List<TaskColumn> columns;
+
     @PrePersist
     protected void onCreate() {
         this.createdDate = Instant.now();
@@ -119,5 +122,13 @@ public class ProjectEntity {
 
     public void setTasks(List<TaskEntity> tasks) {
         this.tasks = tasks;
+    }
+
+    public List<TaskColumn> getColumns() {
+        return columns;
+    }
+
+    public void setColumns(List<TaskColumn> columns) {
+        this.columns = columns;
     }
 }

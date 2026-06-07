@@ -1,8 +1,10 @@
 package helper.project.planner_helper.Services;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.boot.webmvc.autoconfigure.WebMvcProperties.Apiversion.Use;
 import org.springframework.stereotype.Service;
 
 import helper.project.planner_helper.DTO.ProjectRequestRecord;
@@ -11,14 +13,17 @@ import helper.project.planner_helper.DTO.UserProjectResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Repository.ProjectRepository;
+import helper.project.planner_helper.Repository.UserRepository;
 
 @Service
 public class ProjectService {
     private final ProjectRepository projectRepository; // final to make sure it is immutable
+    private final UserRepository userRepository;
 
     // constructor
-    public ProjectService(ProjectRepository projectRepository) {
+    public ProjectService(ProjectRepository projectRepository, UserRepository userRepository) {
         this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
     }
 
     public List<UserProjectResponse> getProjects(UUID userId) {
@@ -33,21 +38,23 @@ public class ProjectService {
         project.setTitle(request.title());
         project.setDescription(request.description());
 
-        if (request.ownerId() != null) {
-            UserEntity owner = new UserEntity();
-            owner.setId(request.ownerId());
-            project.setOwner(owner);
-        }
+        UserEntity owner = this.userRepository.findById(request.ownerId()).orElseThrow();
+        project.setOwner(owner);
+
+        List<UserEntity> users = new ArrayList<>();
+        users.add(owner);
+
         if (request.userIds() != null) {
-            List<UserEntity> users = request.userIds().stream()
-                    .map(uuid -> {
-                        UserEntity user = new UserEntity();
-                        user.setId(uuid);
-                        return user;
-                    })
-                    .toList();
-            project.setUsers(users);
+            for (UUID uuid : request.userIds()) {
+                if (!uuid.equals(owner.getId())) { // avoid duplicate
+                    UserEntity user = userRepository.findById(uuid)
+                            .orElseThrow(() -> new RuntimeException("User not found: " + uuid));
+                    users.add(user);
+                }
+            }
         }
+
+        project.setUsers(users);
 
         // Save Entity
         ProjectEntity savedProject = this.projectRepository.save(project);

@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.UUID;
 
 import helper.project.planner_helper.Types.Priority;
-import helper.project.planner_helper.Types.TaskStatus;
 
 @Entity
 @Table(name = "tasks")
@@ -34,12 +33,6 @@ public class TaskEntity {
     private String title;
     private String description;
 
-    // Without this
-    // hibernate defaults to EnumType.ORDINAL — stores the enum's position index (0,
-    // 1, 2…) instead of the name.
-    @Enumerated(EnumType.STRING)
-    private TaskStatus status;
-
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user; // user responsible for the task
@@ -51,6 +44,13 @@ public class TaskEntity {
     @ManyToOne
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
+
+    @ManyToOne
+    @JoinColumn(name = "column_id", nullable = false)
+    private TaskColumn column;
+
+    @Column(name = "task_order", nullable = false)
+    private int order;
 
     @Column(nullable = false)
     private Instant createdDate;
@@ -94,14 +94,6 @@ public class TaskEntity {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public TaskStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(TaskStatus status) {
-        this.status = status;
     }
 
     public Priority getPriority() {
@@ -158,5 +150,21 @@ public class TaskEntity {
 
     public void setProject(ProjectEntity project) {
         this.project = project;
+    }
+
+    public TaskColumn getColumn() {
+        return column;
+    }
+
+    public void setColumn(TaskColumn column) {
+        this.column = column;
+    }
+
+    public int getOrder() {
+        return order;
+    }
+
+    public void setOrder(int order) {
+        this.order = order;
     }
 }

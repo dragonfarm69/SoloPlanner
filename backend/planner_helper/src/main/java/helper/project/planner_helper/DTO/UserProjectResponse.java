@@ -3,7 +3,9 @@ package helper.project.planner_helper.DTO;
 import java.util.UUID;
 
 import helper.project.planner_helper.Database.ProjectEntity;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record UserProjectResponse(
         UUID id,
         String title,

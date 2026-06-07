@@ -155,36 +155,37 @@ export default function UserProfile() {
   const [projects, setProjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    async function getProjects() {
-      try {
-        const url = new URL("http://localhost:8081/projects");
-        url.searchParams.append("userId", localStorage.getItem("user_id")!);
-        const response = await fetch(url.toString(), {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        if (!response.ok) {
-          throw new Error("Error when tring to fetch project data");
-        }
-        const response_data = await response.json();
-        //map to type
-        const data: UserProjectResponse[] = response_data.map(
-          (project: UserProjectResponse) => ({
-            id: project.id,
-            title: project.title,
-            description: project.description,
-            ownerId: project.ownerId,
-          }),
-        );
-
-        setProjects(data);
-      } catch (e) {
-        console.error("Error when tring to fetch project data", e);
+  async function getProjects() {
+    try {
+      const url = new URL("http://localhost:8081/projects");
+      url.searchParams.append("userId", localStorage.getItem("user_id")!);
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Error when tring to fetch project data");
       }
+      const response_data = await response.json();
+      //map to type
+      const data: UserProjectResponse[] = response_data.map(
+        (project: UserProjectResponse) => ({
+          id: project.id,
+          title: project.title,
+          description: project.description,
+          ownerId: project.ownerId,
+        }),
+      );
+
+      setProjects(data);
+    } catch (e) {
+      console.error("Error when tring to fetch project data", e);
     }
+  }
+
+  useEffect(() => {
     getProjects();
   }, []);
 
@@ -193,7 +194,8 @@ export default function UserProfile() {
   const createNewProject = async (data: ProjectFormData) => {
     console.log("data: ", data);
     try {
-      const url = new URL(`http://localhost:8081/projects/${projectId}/tasks`);
+      // const url = new URL(`http://localhost:8081/projects/${projectId}/tasks`);
+      const url = new URL(`http://localhost:8081/projects`);
       const response = await fetch(url.toString(), {
         method: "POST",
         credentials: "include",
@@ -204,6 +206,8 @@ export default function UserProfile() {
       });
       const response_data = await response.json();
       console.log(response_data);
+
+      await getProjects();
     } catch (e) {
       console.error("Error when trying to create new project: ", e);
     }
