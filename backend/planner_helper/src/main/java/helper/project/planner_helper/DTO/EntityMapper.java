@@ -6,6 +6,7 @@ import java.util.List;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.TaskEntity;
+import helper.project.planner_helper.Database.UserEntity;
 
 public class EntityMapper {
     public static TaskResponse mapToTaskResponse(TaskEntity task) {
@@ -47,5 +48,31 @@ public class EntityMapper {
         return new ProjectBoardResponse(
                 project.getTitle(),
                 columnReponses);
+    }
+
+    // String title, String description, List<TagEntity> tags, int order, TaskColumn
+    // column,
+    // String deadline,
+    // Priority priority
+    public static TaskEntity mapToTaskEntity(ProjectTaskRequest taskRequest, ProjectEntity project, UserEntity user,
+            TaskColumn column) {
+        TaskEntity task = new TaskEntity();
+        task.setTitle(taskRequest.title());
+        task.setDescription(taskRequest.description());
+        task.setColumn(column);
+        task.setProject(project);
+        task.setUser(user);
+        task.setPriority(taskRequest.priority());
+
+        if (taskRequest.deadline() != null && !taskRequest.deadline().trim().isEmpty()) {
+            try {
+                java.time.LocalDate localDate = java.time.LocalDate.parse(taskRequest.deadline());
+                task.setDeadline(localDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant());
+            } catch (Exception e) {
+                // Fall back or keep null if format is invalid
+            }
+        }
+
+        return task;
     }
 }

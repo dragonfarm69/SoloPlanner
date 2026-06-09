@@ -4,7 +4,7 @@ import { PRIORITY_CONFIG, LABEL_COLORS } from "../types";
 import "./TaskModal.css";
 
 interface TaskModalProps {
-  projectId?: string;
+  projectId: string;
   task: Task | null; // null = creating new task
   columns: Column[];
   defaultColumnId: string;
@@ -75,16 +75,21 @@ export default function TaskModal({
     if (!title.trim() || !deadline) return;
 
     try {
-      const url = `http://localhost:8081/projects/${projectId}/${columnId}}`;
+      const url = `http://localhost:8081/projects/${projectId}/${columnId}/tasks`;
 
-      // String title, String description, List<TagEntity> tags, int order, TaskColumn column,
-      //         String deadline,
-      //         Priority priority)
+      const userId = localStorage.getItem("user_id");
+      if (!userId) {
+        console.error("User Id not found");
+        return;
+      }
+
       const payload = {
         title: title,
         description: description,
-        priority: priority,
-        deadline: deadline || null,
+        userId: userId,
+        tags: null,
+        deadline: deadline,
+        priority: priority.toUpperCase(),
       };
 
       const response = await fetch(url, {
@@ -93,8 +98,11 @@ export default function TaskModal({
         headers: {
           "Content-Type": "application/json",
         },
-        // body: JSON.stringify(payload),
+        body: JSON.stringify(payload),
       });
+
+      const data = await response.json();
+      console.log("DATA AFTER CREATE TASK: ", data);
     } catch (e) {
       console.error("Error when trying to add task: ", e);
       return;
@@ -108,7 +116,16 @@ export default function TaskModal({
       columnId,
       deadline,
     });
-  }, [title, description, priority, labels, columnId, onSave]);
+  }, [
+    title,
+    description,
+    priority,
+    labels,
+    columnId,
+    deadline,
+    projectId,
+    onSave,
+  ]);
 
   const handleAddLabel = useCallback(() => {
     const trimmed = labelInput.trim();

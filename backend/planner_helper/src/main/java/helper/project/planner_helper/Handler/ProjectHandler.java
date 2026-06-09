@@ -16,10 +16,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import helper.project.planner_helper.DTO.ColumnResponse;
+import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.ProjectBoardResponse;
 import helper.project.planner_helper.DTO.ProjectColumnRequest;
 import helper.project.planner_helper.DTO.ProjectRequestRecord;
 import helper.project.planner_helper.DTO.ProjectResponseRecord;
+import helper.project.planner_helper.DTO.ProjectTaskRequest;
+import helper.project.planner_helper.DTO.TaskResponse;
 import helper.project.planner_helper.DTO.UserProjectResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskColumn;
@@ -67,15 +70,17 @@ public class ProjectHandler {
         this.projectService.deleteColumn(columnUUID);
     }
 
-    @GetMapping("/{project_id}/{column_id}/tasks")
-    public List<TaskEntity> getColumnTasks(@PathVariable("project_id") UUID projectId,
-            @PathVariable("column_id") String columnId) {
+    @GetMapping("/{project_id}/{column_id}/{task_id}")
+    public List<TaskEntity> getTaskInformation(@PathVariable("project_id") UUID projectId,
+            @PathVariable("column_id") String columnId, @PathVariable("task_id") String taskId) {
         return null;
     }
 
-    @PostMapping("/{project_id}/tasks")
-    public List<TaskEntity> addTask(@Validated @RequestBody ProjectRequestRecord request) {
-        return null;
+    @PostMapping("/{project_id}/{column_id}/tasks")
+    public TaskResponse addTask(@PathVariable("project_id") String projectId,
+            @PathVariable("column_id") String columnId, @Validated @RequestBody ProjectTaskRequest request) {
+        TaskEntity task = this.taskService.createTask(request, projectId, columnId);
+        return EntityMapper.mapToTaskResponse(task);
     }
 
     @PostMapping

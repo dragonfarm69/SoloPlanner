@@ -126,7 +126,7 @@ export default function MainPage() {
             title: t.title,
             description: t.description ?? "",
             priority: (t.priority?.toLowerCase() ?? "low") as Priority, // "HIGH" → "high"
-            tags: [], // not implemented yet
+            labels: [], // not implemented yet
             columnId: col.id, // inject from parent column
             order: t.order, // order of the task in column
             deadline: 0,
@@ -180,6 +180,7 @@ export default function MainPage() {
       {/* Task Modal */}
       {isModalOpen && (
         <TaskModal
+          projectId={projectId}
           task={editingTask}
           columns={board.columns}
           defaultColumnId={defaultColumnId}
