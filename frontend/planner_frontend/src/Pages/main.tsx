@@ -5,7 +5,7 @@ import BoardHeader from "../components/BoardHeader";
 import KanbanBoard from "./Kanban/KanbanBoard";
 import TaskModal from "../components/TaskModal";
 import AiChatPanel from "../components/AiChatPanel";
-import type { Task, Priority } from "../types";
+import type { Task, Priority, Column } from "../types";
 import type { TaskFormData } from "../components/TaskModal";
 import { useParams } from "react-router-dom";
 
@@ -36,7 +36,7 @@ export default function MainPage() {
     setIsModalOpen(true);
   }, [board.columns]);
 
-  const handleAddTaskToColumn = useCallback((columnId: string) => {
+  const handleAddTaskToColumn = useCallback(async (columnId: string) => {
     setEditingTask(null);
     setDefaultColumnId(columnId);
     setIsModalOpen(true);
@@ -73,6 +73,8 @@ export default function MainPage() {
           });
         }
       } else {
+        // do post request to backend to save task
+
         dispatch({
           type: "ADD_TASK",
           payload: {
@@ -101,7 +103,7 @@ export default function MainPage() {
   useEffect(() => {
     async function fetchTasks() {
       try {
-        const url = `http://localhost:8081/projects/${projectId}/tasks`;
+        const url = `http://localhost:8081/projects/${projectId}/board`;
         const response = await fetch(url, {
           method: "GET",
           credentials: "include",
@@ -111,7 +113,27 @@ export default function MainPage() {
         });
 
         const data = await response.json();
+        const columns: Column[] = data.columns.map((col: any) => ({
+          id: col.id,
+          title: col.name, // "name" → "title"
+          order: col.position, // "position" → "order"
+          color: col.color,
+        }));
+
+        const tasks: Task[] = data.columns.flatMap((col: any) =>
+          col.tasks.map((t: any) => ({
+            id: t.id,
+            title: t.title,
+            description: t.description ?? "",
+            priority: (t.priority?.toLowerCase() ?? "low") as Priority, // "HIGH" → "high"
+            tags: [], // not implemented yet
+            columnId: col.id, // inject from parent column
+            order: t.order, // order of the task in column
+            deadline: 0,
+          })),
+        );
         console.log("tasks: ", data);
+        dispatch({ type: "LOAD_BOARD", payload: { columns, tasks } });
       } catch (error) {
         console.log("error when fetching task: ", error);
       }
@@ -144,6 +166,7 @@ export default function MainPage() {
         />
 
         <KanbanBoard
+          projectId={projectId}
           columns={board.columns}
           tasks={board.tasks}
           dispatch={dispatch}

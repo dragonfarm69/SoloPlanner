@@ -151,6 +151,13 @@
   margin-top: 2px;
 }
 
+/* ─── Date Input ──────────────────────── */
+
+.form-date-input {
+  color-scheme: dark; /* makes the native calendar picker respect the dark theme */
+  cursor: pointer;
+}
+
 /* ─── Footer ──────────────────────────── */
 
 .modal-footer {

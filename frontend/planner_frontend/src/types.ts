@@ -10,6 +10,7 @@ export interface Task {
   order: number;
   createdAt: number;
   updatedAt: number;
+  deadline?: string; // ISO date string e.g. "2026-06-30", optional
 }
 
 export interface Column {

@@ -6,6 +6,7 @@ import TaskCard from "../../components/TaskCard";
 import "./KanbanColumn.css";
 
 interface KanbanColumnProps {
+  projectId?: String;
   column: Column;
   tasks: Task[];
   dispatch: BoardDispatch;
@@ -14,6 +15,7 @@ interface KanbanColumnProps {
 }
 
 export default function KanbanColumn({
+  projectId,
   column,
   tasks,
   dispatch,
@@ -78,7 +80,23 @@ export default function KanbanColumn({
     setIsEditingTitle(false);
   }, [editTitle, column.id, column.title, dispatch]);
 
-  const handleDeleteColumn = useCallback(() => {
+  const handleDeleteColumn = useCallback(async () => {
+    try {
+      const url = `http://localhost:8081/projects/${projectId}/${column.id}`;
+
+      const response = await fetch(url, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      console.log("URL: ", url);
+
+      console.log("Column deleted: ", response.status);
+    } catch (e) {
+      console.error("Error when fetching columns: ", e);
+      return;
+    }
+
     if (tasks.length > 0) {
       const confirmed = window.confirm(
         `Delete "${column.title}" and its ${tasks.length} task(s)?`,

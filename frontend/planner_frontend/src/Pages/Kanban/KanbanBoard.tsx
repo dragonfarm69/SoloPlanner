@@ -5,6 +5,7 @@ import KanbanColumn from "./KanbanColumn";
 import "./KanbanBoard.css";
 
 interface KanbanBoardProps {
+  projectId?: string;
   columns: Column[];
   tasks: Task[];
   dispatch: BoardDispatch;
@@ -26,6 +27,7 @@ const COLUMN_COLORS = [
 ];
 
 export default function KanbanBoard({
+  projectId,
   columns,
   tasks,
   dispatch,
@@ -47,6 +49,27 @@ export default function KanbanBoard({
 
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
 
+  async function fetchColumns() {
+    try {
+      // const projectId = "asfafsa";
+      const url = `http://localhost:8081/projects/${projectId}/columns`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      console.log("Column Fetched: ", data);
+    } catch (e) {
+      console.error("Error when fetching columns: ", e);
+    }
+  }
+
   /** Filter tasks by search and priority, then group by column */
   function getFilteredTasks(columnId: string): Task[] {
     return tasks
@@ -67,9 +90,42 @@ export default function KanbanBoard({
       .sort((a, b) => a.order - b.order);
   }
 
-  function handleAddColumn() {
+  async function handleAddColumn() {
     const title = newColumnTitle.trim();
     if (!title) return;
+
+    //
+    try {
+      // const projectId = ;
+      const url = `http://localhost:8081/projects/${projectId}/columns`;
+
+      const payload = {
+        name: title,
+        color: newColumnColor,
+        position: columns.length,
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      console.log("data passinG: ", payload);
+
+      console.log("New Column created: ", data);
+
+      await fetchColumns();
+    } catch (e) {
+      console.error("Error when creating new column: ", e);
+      return;
+    }
+
     dispatch({ type: "ADD_COLUMN", payload: { title, color: newColumnColor } });
     setNewColumnTitle("");
     setNewColumnColor(COLUMN_COLORS[0]);
@@ -80,6 +136,7 @@ export default function KanbanBoard({
     <div className="kanban-board" id="kanban-board">
       {sortedColumns.map((col) => (
         <KanbanColumn
+          projectId={projectId}
           key={col.id}
           column={col}
           tasks={getFilteredTasks(col.id)}

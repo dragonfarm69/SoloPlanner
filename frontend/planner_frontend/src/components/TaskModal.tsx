@@ -4,6 +4,7 @@ import { PRIORITY_CONFIG, LABEL_COLORS } from "../types";
 import "./TaskModal.css";
 
 interface TaskModalProps {
+  projectId?: string;
   task: Task | null; // null = creating new task
   columns: Column[];
   defaultColumnId: string;
@@ -18,9 +19,13 @@ export interface TaskFormData {
   priority: Priority;
   labels: string[];
   columnId: string;
+  deadline: string; // "" means no deadline chosen
 }
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
+
+// Computed once at module level — format: "YYYY-MM-DD"
+const today = new Date().toISOString().split("T")[0];
 
 function getLabelColor(label: string): string {
   let hash = 0;
@@ -31,6 +36,7 @@ function getLabelColor(label: string): string {
 }
 
 export default function TaskModal({
+  projectId,
   task,
   columns,
   defaultColumnId,
@@ -45,6 +51,7 @@ export default function TaskModal({
   );
   const [labels, setLabels] = useState<string[]>(task?.labels ?? []);
   const [columnId, setColumnId] = useState(task?.columnId ?? defaultColumnId);
+  const [deadline, setDeadline] = useState(task?.deadline ?? "");
   const [labelInput, setLabelInput] = useState("");
 
   const titleRef = useRef<HTMLInputElement>(null);
@@ -64,14 +71,42 @@ export default function TaskModal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!title.trim()) return;
+
+    try {
+      const url = `http://localhost:8081/projects/${projectId}/${columnId}}`;
+
+      // String title, String description, List<TagEntity> tags, int order, TaskColumn column,
+      //         String deadline,
+      //         Priority priority)
+      const payload = {
+        title: title,
+        description: description,
+        priority: priority,
+        deadline: deadline || null,
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.error("Error when trying to add task: ", e);
+      return;
+    }
+
     onSave({
       title: title.trim(),
       description: description.trim(),
       priority,
       labels,
       columnId,
+      deadline,
     });
   }, [title, description, priority, labels, columnId, onSave]);
 
@@ -146,7 +181,7 @@ export default function TaskModal({
             />
           </div>
 
-          {/* Priority + Column row */}
+          {/* Priority + Column + Deadline row */}
           <div className="form-row">
             <div className="form-group">
               <label className="form-label" htmlFor="task-priority">
@@ -182,6 +217,20 @@ export default function TaskModal({
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="task-deadline">
+                Deadline
+              </label>
+              <input
+                id="task-deadline"
+                type="date"
+                className="form-input form-date-input"
+                value={deadline}
+                min={today}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
             </div>
           </div>
 

@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useCallback } from "react";
+import { useReducer, useEffect, useCallback, act } from "react";
 import type { Board, Task, Column } from "../types";
 
 // ─── Constants ────────────────────────────────────────
@@ -13,7 +13,7 @@ const DEFAULT_COLUMNS: Column[] = [
 ];
 
 const DEFAULT_BOARD: Board = {
-  columns: DEFAULT_COLUMNS,
+  columns: [],
   tasks: [],
 };
 
@@ -40,7 +40,8 @@ type BoardAction =
     }
   | { type: "ADD_COLUMN"; payload: { title: string; color: string } }
   | { type: "UPDATE_COLUMN"; payload: { id: string } & Partial<Column> }
-  | { type: "DELETE_COLUMN"; payload: { id: string } };
+  | { type: "DELETE_COLUMN"; payload: { id: string } }
+  | { type: "LOAD_BOARD"; payload: Board };
 
 // ─── Helpers ──────────────────────────────────────────
 
@@ -160,6 +161,10 @@ function boardReducer(state: Board, action: BoardAction): Board {
           .map((c, i) => ({ ...c, order: i })),
         tasks: state.tasks.filter((t) => t.columnId !== action.payload.id),
       };
+    }
+
+    case "LOAD_BOARD": {
+      return action.payload;
     }
 
     default:

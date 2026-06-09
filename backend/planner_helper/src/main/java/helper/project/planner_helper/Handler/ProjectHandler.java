@@ -3,6 +3,7 @@ package helper.project.planner_helper.Handler;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,12 +12,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import helper.project.planner_helper.DTO.ColumnResponse;
+import helper.project.planner_helper.DTO.ProjectBoardResponse;
+import helper.project.planner_helper.DTO.ProjectColumnRequest;
 import helper.project.planner_helper.DTO.ProjectRequestRecord;
 import helper.project.planner_helper.DTO.ProjectResponseRecord;
 import helper.project.planner_helper.DTO.UserProjectResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
+import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Services.ProjectService;
 import helper.project.planner_helper.Services.TaskService;
@@ -42,9 +48,34 @@ public class ProjectHandler {
         return "project info " + projectId;
     }
 
-    @GetMapping("/{project_id}/tasks")
-    public List<TaskEntity> getTasks(@PathVariable("project_id") UUID projectId) {
-        return this.taskService.getProjectTasks(projectId);
+    // get summary data of all the tasks and columns for display
+    @GetMapping("/{project_id}/board")
+    public ProjectBoardResponse getProjectBoard(@PathVariable("project_id") UUID projectId) {
+        return this.projectService.getProjectBoard(projectId);
+    }
+
+    @PostMapping("/{project_id}/columns")
+    public ColumnResponse addColumn(@Validated @RequestBody ProjectColumnRequest request,
+            @PathVariable("project_id") String projectId) {
+        return projectService.createNewColumn(request, projectId);
+    }
+
+    @DeleteMapping("/{project_id}/{column_id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteColumn(@PathVariable("project_id") String projectId, @PathVariable("column_id") String columnId) {
+        UUID columnUUID = UUID.fromString(columnId);
+        this.projectService.deleteColumn(columnUUID);
+    }
+
+    @GetMapping("/{project_id}/{column_id}/tasks")
+    public List<TaskEntity> getColumnTasks(@PathVariable("project_id") UUID projectId,
+            @PathVariable("column_id") String columnId) {
+        return null;
+    }
+
+    @PostMapping("/{project_id}/tasks")
+    public List<TaskEntity> addTask(@Validated @RequestBody ProjectRequestRecord request) {
+        return null;
     }
 
     @PostMapping
