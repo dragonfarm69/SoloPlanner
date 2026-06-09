@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.UserRequestRecord;
+import helper.project.planner_helper.DTO.UserResponse;
 import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Services.UserService;
 import tools.jackson.core.type.TypeReference;
@@ -31,7 +33,7 @@ public class UserHandler {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserEntity> getUsersInfo(@CookieValue(name = "access_token") String accessToken) {
+    public ResponseEntity<UserResponse> getUsersInfo(@CookieValue(name = "access_token") String accessToken) {
         // get id in access_token
         String[] chunks = accessToken.split("\\.");
         Base64.Decoder decoder = Base64.getUrlDecoder();
@@ -47,7 +49,8 @@ public class UserHandler {
         System.out.println("user id: " + userId);
 
         UserEntity user = this.userService.findUser(userId);
-        return ResponseEntity.ok().body(user);
+        UserResponse userResponse = EntityMapper.mapToUserResponse(user);
+        return ResponseEntity.ok().body(userResponse);
     }
 
     @PostMapping

@@ -38,6 +38,9 @@ public class UserEntity {
     @Column(nullable = false)
     private String lastName;
 
+    @Column(nullable = false)
+    private String email;
+
     @PrePersist
     protected void onCreate() {
         this.createdDate = Instant.now();
@@ -72,6 +75,14 @@ public class UserEntity {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public Instant getCreatedDate() {

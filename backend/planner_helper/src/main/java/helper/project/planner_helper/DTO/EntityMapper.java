@@ -75,4 +75,13 @@ public class EntityMapper {
 
         return task;
     }
+
+    public static UserResponse mapToUserResponse(UserEntity user) {
+        return new UserResponse(
+                user.getUsername(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getId().toString());
+    }
 }
