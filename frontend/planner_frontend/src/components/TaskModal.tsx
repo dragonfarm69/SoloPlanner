@@ -72,7 +72,7 @@ export default function TaskModal({
   }, [onClose]);
 
   const handleSubmit = useCallback(async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || !deadline) return;
 
     try {
       const url = `http://localhost:8081/projects/${projectId}/${columnId}}`;
@@ -303,7 +303,7 @@ export default function TaskModal({
             <button
               className="btn-modal-save"
               onClick={handleSubmit}
-              disabled={!title.trim()}
+              disabled={!title.trim() || !deadline}
               id="btn-save-task"
             >
               {isEditing ? "Save Changes" : "Create Task"}
