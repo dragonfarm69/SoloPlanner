@@ -54,8 +54,47 @@ export default function MainPage() {
   }, []);
 
   const handleSaveTask = useCallback(
-    (data: TaskFormData) => {
+    async (data: TaskFormData) => {
       if (editingTask) {
+        const url = `http://localhost:8081/projects/${projectId}/${data.columnId}/${editingTask.id}`;
+        try {
+          const userId = localStorage.getItem("user_id");
+          if (!userId) {
+            console.error("User Id not found");
+            return;
+          }
+
+          const payload = {
+            title: data.title,
+            description: data.description,
+            userId: userId,
+            tagIds: null, //null for now
+            deadline: data.deadline
+              ? new Date(data.deadline).toISOString()
+              : null,
+            priority: data.priority.toUpperCase(),
+          };
+
+          const response = await fetch(url, {
+            method: "PATCH",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const response_data = await response.json();
+          console.log("DATA AFTER EDIT TASK: ", response_data);
+          if (response.status !== 201 && response.status !== 200) {
+            console.error("Server errror, failed to add task: ", response_data);
+            return;
+          }
+        } catch (e) {
+          console.error("Error when trying to add task: ", e);
+          return;
+        }
+
         dispatch({
           type: "UPDATE_TASK",
           payload: { id: editingTask.id, ...data },
@@ -74,6 +113,45 @@ export default function MainPage() {
         }
       } else {
         // do post request to backend to save task
+        let url = `http://localhost:8081/projects/${projectId}/${data.columnId}/tasks`;
+        try {
+          const userId = localStorage.getItem("user_id");
+          if (!userId) {
+            console.error("User Id not found");
+            return;
+          }
+
+          const payload = {
+            title: data.title,
+            description: data.description,
+            userId: userId,
+            tags: null,
+            deadline: data.deadline
+              ? new Date(data.deadline).toISOString()
+              : null,
+            priority: data.priority.toUpperCase(),
+          };
+
+          const response = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const response_data = await response.json();
+          console.log("DATA AFTER CREATE TASK: ", data);
+
+          if (response.status !== 201 && response.status !== 200) {
+            console.error("Server errror, failed to add task: ", response_data);
+            return;
+          }
+        } catch (e) {
+          console.error("Error when trying to add task: ", e);
+          return;
+        }
 
         dispatch({
           type: "ADD_TASK",
@@ -83,6 +161,7 @@ export default function MainPage() {
             priority: data.priority,
             labels: data.labels,
             columnId: data.columnId,
+            deadline: data.deadline,
           },
         });
       }

@@ -67,10 +67,14 @@ public class EntityMapper {
 
         if (taskRequest.deadline() != null && !taskRequest.deadline().trim().isEmpty()) {
             try {
-                java.time.LocalDate localDate = java.time.LocalDate.parse(taskRequest.deadline());
-                task.setDeadline(localDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant());
-            } catch (Exception e) {
-                // Fall back or keep null if format is invalid
+                task.setDeadline(java.time.Instant.parse(taskRequest.deadline()));
+            } catch (Exception e1) {
+                try {
+                    java.time.LocalDate localDate = java.time.LocalDate.parse(taskRequest.deadline());
+                    task.setDeadline(localDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant());
+                } catch (Exception e2) {
+                    System.err.println("Could not parse deadline date: " + taskRequest.deadline());
+                }
             }
         }
 

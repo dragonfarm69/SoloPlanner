@@ -71,89 +71,8 @@ export default function TaskModal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const requestEdit = async () => {
-    const url = `http://localhost:8081/projects/${projectId}/${columnId}/${task.id}`;
-    try {
-      const userId = localStorage.getItem("user_id");
-      if (!userId) {
-        console.error("User Id not found");
-        return;
-      }
-
-      const payload = {
-        title: title,
-        description: description,
-        userId: userId,
-        tagIds: null, //null for now
-        deadline: deadline ? new Date(deadline).toISOString() : null,
-        priority: priority.toUpperCase(),
-      };
-
-      const response = await fetch(url, {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      console.log("DATA AFTER CREATE TASK: ", data);
-    } catch (e) {
-      console.error("Error when trying to add task: ", e);
-      return;
-    }
-  };
-
-  const requestCreateTask = async () => {
-    let url = `http://localhost:8081/projects/${projectId}/${columnId}/tasks`;
-    try {
-      const userId = localStorage.getItem("user_id");
-      if (!userId) {
-        console.error("User Id not found");
-        return;
-      }
-
-      const payload = {
-        title: title,
-        description: description,
-        userId: userId,
-        tags: null,
-        deadline: deadline ? new Date(deadline).toISOString() : null,
-        priority: priority.toUpperCase(),
-      };
-
-      const response = await fetch(url, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      console.log("DATA AFTER CREATE TASK: ", data);
-    } catch (e) {
-      console.error("Error when trying to add task: ", e);
-      return;
-    }
-  };
-
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(() => {
     if (!title.trim() || !deadline) return;
-
-    try {
-      if (isEditing) {
-        await requestEdit();
-      } else {
-        await requestCreateTask();
-      }
-    } catch (e) {
-      console.error("Error when trying to add task: ", e);
-      return;
-    }
 
     onSave({
       title: title.trim(),
@@ -163,16 +82,7 @@ export default function TaskModal({
       columnId,
       deadline,
     });
-  }, [
-    title,
-    description,
-    priority,
-    labels,
-    columnId,
-    deadline,
-    projectId,
-    onSave,
-  ]);
+  }, [title, description, priority, labels, columnId, deadline, onSave]);
 
   const handleAddLabel = useCallback(() => {
     const trimmed = labelInput.trim();

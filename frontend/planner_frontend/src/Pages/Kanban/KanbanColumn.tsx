@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import type { Task, Column } from "../../types";
 import type { BoardDispatch } from "../../hooks/useBoard";
 import TaskCard from "../../components/TaskCard";
@@ -39,19 +40,25 @@ export default function KanbanColumn({
       canDrop: ({ source }) => source.data.type === "task",
       onDragEnter: () => setIsDragOver(true),
       onDragLeave: () => setIsDragOver(false),
-      onDrop: ({ source }) => {
+      onDrop: ({ source, location }) => {
         setIsDragOver(false);
         const taskId = source.data.taskId as string;
-        const sourceColumnId = source.data.columnId as string;
 
-        // Don't do anything if dropped in the same column at the end
-        if (sourceColumnId === column.id) {
-          // Move to the end of same column
+        // Check if the drop landed on a task card (innermost drop target)
+        const innerTarget = location.current.dropTargets[0];
+        if (innerTarget && innerTarget.data.type === "task") {
+          // Dropped on a specific card — compute index from edge
+          const targetIndex = innerTarget.data.index as number;
+          const closestEdge = extractClosestEdge(innerTarget.data);
+          const toIndex =
+            closestEdge === "bottom" ? targetIndex + 1 : targetIndex;
+
           dispatch({
             type: "MOVE_TASK",
-            payload: { taskId, toColumnId: column.id, toIndex: tasks.length },
+            payload: { taskId, toColumnId: column.id, toIndex },
           });
         } else {
+          // Dropped on the column body directly (empty area) — append at end
           dispatch({
             type: "MOVE_TASK",
             payload: { taskId, toColumnId: column.id, toIndex: tasks.length },
@@ -191,10 +198,11 @@ export default function KanbanColumn({
         {tasks.length === 0 ? (
           <div className="column-body-empty">Drop tasks here</div>
         ) : (
-          tasks.map((task) => (
+          tasks.map((task, i) => (
             <TaskCard
               key={task.id}
               task={task}
+              index={i}
               onEdit={onEditTask}
               onDelete={handleDeleteTask}
             />
