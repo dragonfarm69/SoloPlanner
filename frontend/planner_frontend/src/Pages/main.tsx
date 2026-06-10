@@ -129,7 +129,7 @@ export default function MainPage() {
             labels: [], // not implemented yet
             columnId: col.id, // inject from parent column
             order: t.order, // order of the task in column
-            deadline: 0,
+            deadline: t.deadline ? t.deadline.split("T")[0] : "",
           })),
         );
         console.log("tasks: ", data);

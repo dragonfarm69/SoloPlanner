@@ -2,6 +2,7 @@ package helper.project.planner_helper.DTO;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskColumn;
@@ -83,5 +84,9 @@ public class EntityMapper {
                 user.getLastName(),
                 user.getEmail(),
                 user.getId().toString());
+    }
+
+    public static UUID mapToUUID(String id) {
+        return UUID.fromString(id);
     }
 }

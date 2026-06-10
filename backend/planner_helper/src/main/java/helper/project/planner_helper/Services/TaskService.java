@@ -7,14 +7,18 @@ import org.springframework.stereotype.Service;
 
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.ProjectTaskRequest;
+import helper.project.planner_helper.DTO.TaskEditRequest;
 import helper.project.planner_helper.Database.ProjectEntity;
+import helper.project.planner_helper.Database.TagEntity;
 import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Repository.ProjectRepository;
+import helper.project.planner_helper.Repository.TagRepository;
 import helper.project.planner_helper.Repository.TaskColumnRepository;
 import helper.project.planner_helper.Repository.TaskRepository;
 import helper.project.planner_helper.Repository.UserRepository;
+import jakarta.transaction.Transactional;
 
 @Service
 public class TaskService {
@@ -22,14 +26,17 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final TaskColumnRepository taskColumnRepository;
     private final UserRepository userRepository;
+    private final TagRepository tagRepository;
 
     // constructor
     public TaskService(TaskRepository taskRepository, ProjectRepository projectRepository,
-            TaskColumnRepository taskColumnRepository, UserRepository userRepository) {
+            TaskColumnRepository taskColumnRepository, UserRepository userRepository,
+            TagRepository tagRepository) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.taskColumnRepository = taskColumnRepository;
         this.userRepository = userRepository;
+        this.tagRepository = tagRepository;
     }
 
     public List<TaskEntity> getUserTasks(UUID userId) {
@@ -60,10 +67,67 @@ public class TaskService {
         return this.taskRepository.save(task);
     }
 
-    public String deleteTask(UUID taskId) {
-        this.taskRepository.deleteById(taskId);
+    public void deleteTask(String taskId, String projectId, String columnId) {
+        UUID taskUUID = EntityMapper.mapToUUID(taskId);
+        UUID projectUUID = EntityMapper.mapToUUID(projectId);
+        UUID columnUUID = EntityMapper.mapToUUID(columnId);
 
-        return "Deleted " + taskId.toString();
+        TaskEntity task = this.taskRepository.findById(taskUUID)
+                .orElseThrow(() -> new RuntimeException("Task not found " + taskId));
+
+        if (!task.getProject().getId().equals(projectUUID)) {
+            throw new RuntimeException("This task does not belong to this project: " + projectId);
+        }
+        if (!task.getColumn().getId().equals(columnUUID)) {
+            throw new RuntimeException("This task does not belong to this column: " + columnId);
+        }
+
+        this.taskRepository.delete(task);
+    }
+
+    @Transactional
+    public TaskEntity editTask(String taskId, String projectId, String columnId, TaskEditRequest request) {
+        UUID taskUUID = EntityMapper.mapToUUID(taskId);
+        UUID projectUUID = EntityMapper.mapToUUID(projectId);
+        UUID columnUUID = EntityMapper.mapToUUID(columnId);
+
+        TaskEntity task = this.taskRepository.findById(taskUUID)
+                .orElseThrow(() -> new RuntimeException("Task not found " + taskId));
+
+        if (!task.getProject().getId().equals(projectUUID)) {
+            throw new RuntimeException("This task does not belong to this project: " + projectId);
+        }
+        if (!task.getColumn().getId().equals(columnUUID)) {
+            throw new RuntimeException("This task does not belong to this column: " + columnId);
+        }
+
+        if (request.title() != null) {
+            task.setTitle(request.title());
+        }
+        if (request.description() != null) {
+            task.setDescription(request.description());
+        }
+        if (request.priority() != null) {
+            task.setPriority(request.priority());
+        }
+        if (request.deadline() != null) {
+            task.setDeadline(request.deadline());
+        }
+        if (request.tagIds() != null) {
+            List<UUID> tagUUIDs = request.tagIds().stream()
+                    .map(UUID::fromString)
+                    .toList();
+            List<TagEntity> tags = this.tagRepository.findAllById(tagUUIDs);
+            task.setTags(tags);
+        }
+        if (request.userId() != null) {
+            UUID userUUID = UUID.fromString(request.userId());
+            UserEntity user = this.userRepository.findById(userUUID)
+                    .orElseThrow(() -> new RuntimeException("User not found " + request.userId()));
+            task.setUser(user);
+        }
+
+        return this.taskRepository.save(task);
     }
 
     public List<TaskEntity> getProjectTasks(UUID projectId) {

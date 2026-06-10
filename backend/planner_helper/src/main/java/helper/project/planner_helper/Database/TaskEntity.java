@@ -19,9 +19,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import org.hibernate.annotations.DynamicUpdate;
+
 import helper.project.planner_helper.Types.Priority;
 
 @Entity
+@DynamicUpdate // only update fields that have different value
 @Table(name = "tasks")
 public class TaskEntity {
     @Id

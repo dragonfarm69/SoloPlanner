@@ -93,7 +93,7 @@ export default function KanbanColumn({
 
       console.log("Column deleted: ", response.status);
     } catch (e) {
-      console.error("Error when fetching columns: ", e);
+      console.error("Error when deleting columns: ", e);
       return;
     }
 
@@ -107,7 +107,29 @@ export default function KanbanColumn({
   }, [column.id, column.title, tasks.length, dispatch]);
 
   const handleDeleteTask = useCallback(
-    (taskId: string) => {
+    async (taskId: string) => {
+      try {
+        const url = `http://localhost:8081/projects/${projectId}/${column.id}/${taskId}`;
+
+        const response = await fetch(url, {
+          method: "DELETE",
+          credentials: "include",
+        });
+
+        console.log("URL: ", url);
+
+        console.log("task deleted: ", response.status);
+      } catch (e) {
+        console.error("Error when deleting task: ", e);
+        return;
+      }
+
+      if (tasks.length > 0) {
+        const confirmed = window.confirm(
+          `Delete "${column.title}" and its ${tasks.length} task(s)?`,
+        );
+        if (!confirmed) return;
+      }
       dispatch({ type: "DELETE_TASK", payload: { id: taskId } });
     },
     [dispatch],
