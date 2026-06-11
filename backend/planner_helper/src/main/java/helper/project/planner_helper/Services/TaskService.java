@@ -56,13 +56,25 @@ public class TaskService {
         UserEntity userEntity = this.userRepository.findById(userUUID)
                 .orElseThrow(() -> new RuntimeException("User not found " + columnId));
 
-        int nextOrder = 0;
-        if (columnEntity.getTasks() != null) {
-            nextOrder = columnEntity.getTasks().size();
-        }
-
         TaskEntity task = EntityMapper.mapToTaskEntity(request, projectEntity, userEntity, columnEntity);
-        task.setOrder(nextOrder);
+
+        TaskEntity latestTask = this.taskRepository.findLatestTaskByProjectId(projectUUID)
+                .orElse(null);
+
+        // TODO: HANDLE CASE TASK BEING IN DIFFERENT COLUMN SINCE THIS LOGIC IS APPLYING
+        // GLOBALLY
+
+        // No task yet
+        if (latestTask == null) {
+            String order = Integer.toString(100000, 36);
+            task.setOrder(order);
+        } else {
+            int latestOrder = Integer.parseInt(latestTask.getOrder(), 36); // parse latest task order to int
+            int newestOrder = latestOrder + 100000;
+
+            String newOrder = Integer.toString(newestOrder, 36);
+            task.setOrder(newOrder);
+        }
 
         return this.taskRepository.save(task);
     }

@@ -1,6 +1,7 @@
 package helper.project.planner_helper.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,4 +19,11 @@ public interface TaskRepository extends JpaRepository<TaskEntity, UUID> {
         List<TaskEntity> findTaskByUserId(
                         @Param("userId") UUID userId);
 
+        @Query("SELECT t FROM TaskEntity t WHERE t.project.id = :projectId ORDER BY t.order DESC LIMIT 1")
+        Optional<TaskEntity> findLatestTaskByProjectId(
+                        @Param("projectId") UUID projectId);
+
+        @Query("SELECT t FROM TaskEntity t WHERE t.project.id = :projectId ORDER BY t.order ASC")
+        List<TaskEntity> findTasksByProjectIdOrdered(
+                        @Param("projectId") UUID projectId);
 }

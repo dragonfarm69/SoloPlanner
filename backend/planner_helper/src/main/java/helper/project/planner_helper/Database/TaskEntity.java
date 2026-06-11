@@ -53,7 +53,7 @@ public class TaskEntity {
     private TaskColumn column;
 
     @Column(name = "task_order", nullable = false)
-    private int order;
+    private String order;
 
     @Column(nullable = false)
     private Instant createdDate;
@@ -163,11 +163,11 @@ public class TaskEntity {
         this.column = column;
     }
 
-    public int getOrder() {
+    public String getOrder() {
         return order;
     }
 
-    public void setOrder(int order) {
+    public void setOrder(String order) {
         this.order = order;
     }
 }

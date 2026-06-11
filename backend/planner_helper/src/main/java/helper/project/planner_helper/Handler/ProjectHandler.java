@@ -82,7 +82,6 @@ public class ProjectHandler {
     @PostMapping("/{project_id}/{column_id}/tasks")
     public TaskResponse addTask(@PathVariable("project_id") String projectId,
             @PathVariable("column_id") String columnId, @Validated @RequestBody ProjectTaskRequest request) {
-        System.out.println("Deadline in request: " + request.deadline());
         TaskEntity task = this.taskService.createTask(request, projectId, columnId);
         return EntityMapper.mapToTaskResponse(task);
     }

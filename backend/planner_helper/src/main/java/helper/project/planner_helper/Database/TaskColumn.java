@@ -29,7 +29,7 @@ public class TaskColumn {
     private String color;
 
     @Column(nullable = false)
-    private int position;
+    private String position;
 
     @ManyToOne
     @JoinColumn(name = "project_id", nullable = false)
@@ -71,11 +71,11 @@ public class TaskColumn {
         this.color = color;
     }
 
-    public int getPosition() {
+    public String getPosition() {
         return position;
     }
 
-    public void setPosition(int position) {
+    public void setPosition(String position) {
         this.position = position;
     }
 

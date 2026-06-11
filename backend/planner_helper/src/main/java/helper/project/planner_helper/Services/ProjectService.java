@@ -77,7 +77,11 @@ public class ProjectService {
 
         column.setColor(request.color());
         column.setName(request.name());
-        column.setPosition(request.position());
+
+        // TODO: calculate new position and add it to the new column
+        // TaskColumn neighbor = this.taskColumnRepository.findLaste
+
+        // column.setPosition(request.position( ));
 
         UUID project_uuid = UUID.fromString(projectId);
 
