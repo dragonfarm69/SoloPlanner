@@ -61,9 +61,6 @@ public class TaskService {
         TaskEntity latestTask = this.taskRepository.findLatestTaskByProjectId(projectUUID, columnUUID)
                 .orElse(null);
 
-        // TODO: HANDLE CASE TASK BEING IN DIFFERENT COLUMN SINCE THIS LOGIC IS APPLYING
-        // GLOBALLY
-
         // first task in the column
         if (latestTask == null) {
             String order = Integer.toString(100000, 36);
