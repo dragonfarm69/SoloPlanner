@@ -58,13 +58,13 @@ public class TaskService {
 
         TaskEntity task = EntityMapper.mapToTaskEntity(request, projectEntity, userEntity, columnEntity);
 
-        TaskEntity latestTask = this.taskRepository.findLatestTaskByProjectId(projectUUID)
+        TaskEntity latestTask = this.taskRepository.findLatestTaskByProjectId(projectUUID, columnUUID)
                 .orElse(null);
 
         // TODO: HANDLE CASE TASK BEING IN DIFFERENT COLUMN SINCE THIS LOGIC IS APPLYING
         // GLOBALLY
 
-        // No task yet
+        // first task in the column
         if (latestTask == null) {
             String order = Integer.toString(100000, 36);
             task.setOrder(order);
@@ -75,7 +75,6 @@ public class TaskService {
             String newOrder = Integer.toString(newestOrder, 36);
             task.setOrder(newOrder);
         }
-
         return this.taskRepository.save(task);
     }
 

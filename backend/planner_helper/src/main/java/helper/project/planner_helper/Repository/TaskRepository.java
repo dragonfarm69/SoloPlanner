@@ -19,9 +19,9 @@ public interface TaskRepository extends JpaRepository<TaskEntity, UUID> {
         List<TaskEntity> findTaskByUserId(
                         @Param("userId") UUID userId);
 
-        @Query("SELECT t FROM TaskEntity t WHERE t.project.id = :projectId ORDER BY t.order DESC LIMIT 1")
+        @Query("SELECT t FROM TaskEntity t WHERE t.project.id = :projectId AND t.column.id = :columnId ORDER BY t.order DESC LIMIT 1")
         Optional<TaskEntity> findLatestTaskByProjectId(
-                        @Param("projectId") UUID projectId);
+                        @Param("projectId") UUID projectId, @Param("columnId") UUID columnId);
 
         @Query("SELECT t FROM TaskEntity t WHERE t.project.id = :projectId ORDER BY t.order ASC")
         List<TaskEntity> findTasksByProjectIdOrdered(
