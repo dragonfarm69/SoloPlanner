@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.ProjectTaskRequest;
 import helper.project.planner_helper.DTO.TaskEditRequest;
+import helper.project.planner_helper.DTO.TaskPositionRequest;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TagEntity;
 import helper.project.planner_helper.Database.TaskColumn;
@@ -136,6 +137,72 @@ public class TaskService {
         }
 
         return this.taskRepository.save(task);
+    }
+
+    public void moveTask(String taskId, String projectId, String columnId, TaskPositionRequest request) {
+        UUID taskUUID = EntityMapper.mapToUUID(taskId);
+        UUID projectUUID = EntityMapper.mapToUUID(projectId);
+        UUID columnUUID = EntityMapper.mapToUUID(request.columnId());
+
+        TaskEntity task = this.taskRepository.findById(taskUUID)
+                .orElseThrow(() -> new RuntimeException("Task not found " + taskId));
+
+        if (!task.getProject().getId().equals(projectUUID)) {
+            throw new RuntimeException("This task does not belong to this project: " + projectId);
+        }
+
+        if (!task.getColumn().getId().equals(columnUUID)) {
+            TaskColumn column = this.taskColumnRepository.findById(columnUUID)
+                    .orElseThrow(() -> new RuntimeException("Column not found " + taskId));
+            task.setColumn(column);
+        }
+
+        UUID prevTaskUUID = EntityMapper.mapToUUID(request.prevTaskId());
+        UUID nextTaskUUID = EntityMapper.mapToUUID(request.nextTaskId());
+
+        TaskEntity prevTask = null;
+        TaskEntity nextTask = null;
+
+        // If it not null then it should've exists
+        if (prevTaskUUID != null) {
+            prevTask = this.taskRepository.findById(prevTaskUUID)
+                    .orElseThrow(() -> new RuntimeException("This prev task should exists: " + request.prevTaskId()));
+        }
+
+        if (nextTaskUUID != null) {
+            nextTask = this.taskRepository.findById(nextTaskUUID)
+                    .orElseThrow(() -> new RuntimeException("This next task should exists: " + request.nextTaskId()));
+        }
+        // TODO: HANDLE CASE WHERE AT THE TOP OR BOTTOM, WE RAN OUT OF SPACE (midpoint
+        // is 0 or always return the same value)
+
+        System.out.println("prev ORDER: " + request.prevTaskId());
+        System.out.println("next ORDER: " + request.nextTaskId());
+
+        int newOrderInt;
+        if (prevTask == null && nextTask == null) {
+            // Case 1: Column is empty;
+            newOrderInt = 100000;
+        } else if (prevTask == null) {
+            // Case 2: Dropped at the very top
+            int nextOrder = Integer.parseInt(nextTask.getOrder(), 36);
+            newOrderInt = nextOrder / 2;
+        } else if (nextTask == null) {
+            // Case 3: Dropped at the very bottom
+            int prevOrder = Integer.parseInt(prevTask.getOrder(), 36);
+            newOrderInt = prevOrder + 100000;
+        } else {
+            // Case 4: Dropped in between two tasks
+            int prevOrder = Integer.parseInt(prevTask.getOrder(), 36);
+            int nextOrder = Integer.parseInt(nextTask.getOrder(), 36);
+            newOrderInt = (prevOrder + nextOrder) / 2;
+        }
+
+        System.out.println("NEW ORDER: " + newOrderInt);
+        String newOrder = Integer.toString(newOrderInt, 36);
+        task.setOrder(newOrder);
+
+        this.taskRepository.save(task);
     }
 
     public List<TaskEntity> getProjectTasks(UUID projectId) {

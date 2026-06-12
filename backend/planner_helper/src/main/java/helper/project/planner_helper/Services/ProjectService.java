@@ -78,17 +78,26 @@ public class ProjectService {
         column.setColor(request.color());
         column.setName(request.name());
 
-        // TODO: calculate new position and add it to the new column
-        // TaskColumn neighbor = this.taskColumnRepository.findLaste
+        UUID projectUUID = UUID.fromString(projectId);
 
-        // column.setPosition(request.position( ));
-
-        UUID project_uuid = UUID.fromString(projectId);
-
-        ProjectEntity project = this.projectRepository.findById(project_uuid)
+        ProjectEntity project = this.projectRepository.findById(projectUUID)
                 .orElseThrow(() -> new RuntimeException("Project not found" + projectId));
 
         column.setProject(project);
+
+        TaskColumn latestColumn = this.taskColumnRepository.findLatestTaskColumnByProjectId(projectUUID).orElse(null);
+        // first column
+        if (latestColumn == null) {
+            String position = Integer.toString(100000, 36);
+            column.setPosition(position);
+        } else {
+            int latestPosition = Integer.parseInt(latestColumn.getPosition(), 36); // parse latest task position to int
+            int newestPosition = latestPosition + 100000;
+
+            String newposition = Integer.toString(newestPosition, 36);
+            column.setPosition(newposition);
+        }
+
         this.taskColumnRepository.save(column);
         return EntityMapper.mapToColumnResponse(column);
     }

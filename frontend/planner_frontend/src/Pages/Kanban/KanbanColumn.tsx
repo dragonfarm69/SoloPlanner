@@ -40,7 +40,7 @@ export default function KanbanColumn({
       canDrop: ({ source }) => source.data.type === "task",
       onDragEnter: () => setIsDragOver(true),
       onDragLeave: () => setIsDragOver(false),
-      onDrop: ({ source, location }) => {
+      onDrop: async ({ source, location }) => {
         setIsDragOver(false);
         const taskId = source.data.taskId as string;
 
@@ -57,12 +57,72 @@ export default function KanbanColumn({
             type: "MOVE_TASK",
             payload: { taskId, toColumnId: column.id, toIndex },
           });
+
+          try {
+            const otherTasks = tasks.filter((t) => t.id !== taskId);
+            const clampedIndex = Math.min(toIndex, otherTasks.length);
+
+            const prevTask =
+              clampedIndex > 0 ? otherTasks[clampedIndex - 1] : null;
+
+            const nextTask =
+              clampedIndex < otherTasks.length
+                ? otherTasks[clampedIndex]
+                : null;
+
+            const previous_id = prevTask ? prevTask.id : null;
+            const next_id = nextTask ? nextTask.id : null;
+
+            const payload = {
+              columnId: column.id,
+              prevTaskId: previous_id,
+              nextTaskId: next_id,
+            };
+            const url = `http://localhost:8081/projects/${projectId}/${column.id}/${taskId}/position`;
+
+            console.log("REQUESTING MOVING TASK: ", payload);
+            const response = await fetch(url, {
+              method: "PATCH",
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+
+            console.log("SERVER RETURNED: ", response.status);
+          } catch (e) {
+            console.error("Error when trying to update task position: ", e);
+          }
         } else {
           // Dropped on the column body directly (empty area) — append at end
           dispatch({
             type: "MOVE_TASK",
             payload: { taskId, toColumnId: column.id, toIndex: tasks.length },
           });
+
+          try {
+            const payload = {
+              columnId: column.id,
+              prevTaskId: null,
+              nextTaskId: null,
+            };
+            const url = `http://localhost:8081/projects/${projectId}/${column.id}/${taskId}/position`;
+
+            console.log("REQUESTING MOVING TASK TO EMPTY: ", payload);
+            const response = await fetch(url, {
+              method: "PATCH",
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+
+            console.log("SERVER RETURNED: ", response.status);
+          } catch (e) {
+            console.error("Error when trying to update task position: ", e);
+          }
         }
       },
     });

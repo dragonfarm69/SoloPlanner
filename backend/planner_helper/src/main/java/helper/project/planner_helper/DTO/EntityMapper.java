@@ -91,6 +91,9 @@ public class EntityMapper {
     }
 
     public static UUID mapToUUID(String id) {
+        if (id == null || id.trim().isEmpty() || id.equals("null")) {
+            return null;
+        }
         return UUID.fromString(id);
     }
 }
