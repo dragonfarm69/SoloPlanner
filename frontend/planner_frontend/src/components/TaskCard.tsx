@@ -9,7 +9,7 @@ import {
   extractClosestEdge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import type { Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
-import type { Task } from "../types";
+import type { Task, Priority } from "../types";
 import { PRIORITY_CONFIG, LABEL_COLORS } from "../types";
 import "./TaskCard.css";
 
@@ -34,30 +34,35 @@ export default function TaskCard({
   onEdit,
   onDelete,
 }: TaskCardProps) {
-  const ref = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
+  const [dragPreview, setDragPreview] = useState<{ title: string; priority: Priority } | null>(null);
 
   const priority = PRIORITY_CONFIG[task.priority];
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const wrapperEl = wrapperRef.current;
+    const cardEl = cardRef.current;
+    if (!wrapperEl || !cardEl) return;
 
     return combine(
       draggable({
-        element: el,
+        element: cardEl,
         getInitialData: () => ({
           type: "task",
           taskId: task.id,
           columnId: task.columnId,
           index,
+          title: task.title,
+          priority: task.priority,
         }),
         onDragStart: () => setIsDragging(true),
         onDrop: () => setIsDragging(false),
       }),
       dropTargetForElements({
-        element: el,
+        element: wrapperEl,
         getData: ({ input, element }) => {
           const data = {
             type: "task",
@@ -75,24 +80,52 @@ export default function TaskCard({
           // Don't allow dropping on itself
           return source.data.type === "task" && source.data.taskId !== task.id;
         },
-        onDragEnter: ({ self }) => {
+        onDragEnter: ({ self, source }) => {
           setClosestEdge(extractClosestEdge(self.data));
+          setDragPreview({
+            title: source.data.title as string,
+            priority: source.data.priority as Priority,
+          });
         },
         onDrag: ({ self }) => {
           const edge = extractClosestEdge(self.data);
           setClosestEdge((current) => (current !== edge ? edge : current));
         },
-        onDragLeave: () => setClosestEdge(null),
-        onDrop: () => setClosestEdge(null),
+        onDragLeave: () => {
+          setClosestEdge(null);
+          setDragPreview(null);
+        },
+        onDrop: () => {
+          setClosestEdge(null);
+          setDragPreview(null);
+        },
       }),
     );
   }, [task.id, task.columnId, index]);
 
+  const renderDropPreview = () => {
+    if (!dragPreview) return null;
+    const p = PRIORITY_CONFIG[dragPreview.priority];
+    return (
+      <div className="drop-indicator-card">
+        <div className="drop-indicator-card-header">
+          <span className="drop-indicator-card-title">{dragPreview.title}</span>
+          <span
+            className="drop-indicator-card-priority"
+            style={{ color: p.color, background: p.bg }}
+          >
+            {p.label}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="task-card-wrapper">
-      {closestEdge === "top" && <div className="drop-indicator" />}
+    <div className="task-card-wrapper" ref={wrapperRef}>
+      {closestEdge === "top" && renderDropPreview()}
       <div
-        ref={ref}
+        ref={cardRef}
         className={`task-card ${isDragging ? "is-dragging" : ""}`}
         id={`task-${task.id}`}
         onClick={() => onEdit(task)}
@@ -165,7 +198,7 @@ export default function TaskCard({
           </div>
         </div>
       </div>
-      {closestEdge === "bottom" && <div className="drop-indicator" />}
+      {closestEdge === "bottom" && renderDropPreview()}
     </div>
   );
 }
