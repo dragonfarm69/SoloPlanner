@@ -3,11 +3,13 @@ package helper.project.planner_helper.Services;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.ProjectTaskRequest;
 import helper.project.planner_helper.DTO.TaskEditRequest;
+import helper.project.planner_helper.DTO.TaskMovedBroadCastEvent;
 import helper.project.planner_helper.DTO.TaskPositionRequest;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TagEntity;
@@ -28,16 +30,18 @@ public class TaskService {
     private final TaskColumnRepository taskColumnRepository;
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
+    private final SimpMessagingTemplate mesageTemplate;
 
     // constructor
     public TaskService(TaskRepository taskRepository, ProjectRepository projectRepository,
             TaskColumnRepository taskColumnRepository, UserRepository userRepository,
-            TagRepository tagRepository) {
+            TagRepository tagRepository, SimpMessagingTemplate mesageTemplate) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.taskColumnRepository = taskColumnRepository;
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
+        this.mesageTemplate = mesageTemplate;
     }
 
     public List<TaskEntity> getUserTasks(UUID userId) {
@@ -203,6 +207,15 @@ public class TaskService {
         task.setOrder(newOrder);
 
         this.taskRepository.save(task);
+
+        // broad cast the event
+        TaskMovedBroadCastEvent broadcastEvent = new TaskMovedBroadCastEvent(
+                taskId,
+                columnId,
+                newOrder);
+
+        String destination = "/topic/projects/" + projectId;
+        this.mesageTemplate.convertAndSend(destination, broadcastEvent);
     }
 
     public List<TaskEntity> getProjectTasks(UUID projectId) {

@@ -1,10 +1,6 @@
 package helper.project.planner_helper.Services;
 
-import java.net.HttpURLConnection;
-import java.util.List;
 import java.util.Map;
-
-import javax.print.attribute.standard.Media;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
@@ -15,7 +11,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-import helper.project.planner_helper.DTO.KeyCloakPayload;
 import helper.project.planner_helper.DTO.UserRequestRecord;
 import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Repository.UserRepository;
@@ -37,7 +32,6 @@ public class UserService {
 
     public UserEntity createUser(UserRequestRecord request) {
         // save to keycloak
-        final String tokenEndpoint = "http://localhost:8080/realms/planner/protocol/openid-connect/token";
         final String registerEndpoint = "http://localhost:8080/admin/realms/planner/users";
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();

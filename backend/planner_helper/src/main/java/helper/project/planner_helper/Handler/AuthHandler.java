@@ -2,10 +2,8 @@ package helper.project.planner_helper.Handler;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Map;
 
-import org.apache.catalina.connector.Response;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,11 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
 
 import helper.project.planner_helper.DTO.UserRequestRecord;
-import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Services.UserService;
-import tools.jackson.core.ObjectReadContext.Base;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/auth")
