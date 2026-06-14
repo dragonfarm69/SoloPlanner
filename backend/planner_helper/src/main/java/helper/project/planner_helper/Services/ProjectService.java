@@ -35,7 +35,21 @@ public class ProjectService {
         this.taskColumnRepository = taskColumnRepository;
     }
 
-    public List<UserProjectResponse> getProjects(UUID userId) {
+    public ProjectEntity findProject(UUID projecUuid) {
+        ProjectEntity projectEntity = this.projectRepository.findById(projecUuid)
+                .orElse(null);
+
+        return projectEntity;
+    }
+
+    public boolean isUserInProject(UUID projecUuid, UUID userUuid) {
+        ProjectEntity projectEntity = this.projectRepository.findUserInProject(userUuid, projecUuid)
+                .orElse(null);
+
+        return (projectEntity == null) ? false : true;
+    }
+
+    public List<UserProjectResponse> getUserProjects(UUID userId) {
         List<ProjectEntity> savedProjects = this.projectRepository.findProjectByUserId(userId);
 
         return savedProjects.stream().map(UserProjectResponse::new).toList();

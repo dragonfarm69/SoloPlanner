@@ -47,7 +47,7 @@ public class ProjectHandler {
 
     @GetMapping
     public List<UserProjectResponse> getProjects(@RequestParam("userId") UUID userId) {
-        return projectService.getProjects(userId);
+        return projectService.getUserProjects(userId);
     }
 
     @GetMapping("/{project_id}")

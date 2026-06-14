@@ -1,6 +1,7 @@
 package helper.project.planner_helper.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,4 +14,8 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, UUID> {
     @Query("SELECT t FROM ProjectEntity t WHERE t.owner.id = :userId")
     List<ProjectEntity> findProjectByUserId(
             @Param("userId") UUID userId);
+
+    @Query("SELECT p FROM ProjectEntity JOIN p.users u WHERE p.id = :projectId AND u.id = :userId")
+    Optional<ProjectEntity> findUserInProject(
+            @Param("userId") UUID userId, @Param("projectId") UUID projectId);
 }
