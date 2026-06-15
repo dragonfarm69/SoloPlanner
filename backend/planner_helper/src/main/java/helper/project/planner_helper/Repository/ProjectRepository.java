@@ -11,11 +11,11 @@ import org.springframework.data.repository.query.Param;
 import helper.project.planner_helper.Database.ProjectEntity;
 
 public interface ProjectRepository extends JpaRepository<ProjectEntity, UUID> {
-    @Query("SELECT t FROM ProjectEntity t WHERE t.owner.id = :userId")
-    List<ProjectEntity> findProjectByUserId(
-            @Param("userId") UUID userId);
+        @Query("SELECT t FROM ProjectEntity t WHERE t.owner.id = :userId")
+        List<ProjectEntity> findProjectByUserId(
+                        @Param("userId") UUID userId);
 
-    @Query("SELECT p FROM ProjectEntity JOIN p.users u WHERE p.id = :projectId AND u.id = :userId")
-    Optional<ProjectEntity> findUserInProject(
-            @Param("userId") UUID userId, @Param("projectId") UUID projectId);
+        @Query("SELECT p FROM ProjectEntity p JOIN p.users u WHERE p.id = :projectId AND u.id = :userId")
+        Optional<ProjectEntity> findUserInProject(
+                        @Param("userId") UUID userId, @Param("projectId") UUID projectId);
 }

@@ -102,12 +102,14 @@ export default function MainPage() {
         // If column changed, move the task
         if (data.columnId !== editingTask.columnId) {
           const destTasks = getColumnTasks(data.columnId);
+          const lastTask = destTasks[destTasks.length - 1];
+          const newOrder = lastTask ? lastTask.order + 100000 : 100000;
           dispatch({
             type: "MOVE_TASK",
             payload: {
               taskId: editingTask.id,
               toColumnId: data.columnId,
-              toIndex: destTasks.length,
+              newOrder: newOrder,
             },
           });
         }
@@ -218,6 +220,75 @@ export default function MainPage() {
       }
     }
     fetchTasks();
+
+    // establish WebSocket Connection
+    if (!projectId) return;
+
+    const ws = new WebSocket("ws://localhost:8081/ws-connect/websocket");
+
+    ws.onopen = () => {
+      console.log("WebSocket connection established. Sending CONNECT frame...");
+      // Send STOMP CONNECT frame
+      const connectFrame =
+        "CONNECT\naccept-version:1.2,1.1,1.0\nheart-beat:10000,10000\n\n\u0000";
+      ws.send(connectFrame);
+    };
+
+    ws.onmessage = (event) => {
+      const messageText = event.data;
+
+      // Check if this is a CONNECTED frame
+      if (messageText.startsWith("CONNECTED")) {
+        console.log("STOMP Session Connected! Subscribing to topic...");
+        // Send STOMP SUBSCRIBE frame
+        const subscribeFrame = `SUBSCRIBE\nid:sub-0\ndestination:/topic/projects/${projectId}\n\n\u0000`;
+        ws.send(subscribeFrame);
+      }
+      // Check if this is a MESSAGE frame
+      else if (messageText.startsWith("MESSAGE")) {
+        // Parse the body out of the STOMP message
+        // STOMP body starts after a double newline (\n\n) and ends with the null character (\u0000)
+        const parts = messageText.split("\n\n");
+        if (parts.length > 1) {
+          const body = parts[1].replace(/\u0000/g, "").trim();
+          try {
+            const data = JSON.parse(body);
+            console.log("Received task moved broadcast event:", data);
+
+            // payload: { taskId, toColumnId: column.id, toIndex },
+
+            // Dispatch/update state when another user moves a task
+            dispatch({
+              type: "MOVE_TASK",
+              payload: {
+                taskId: data.taskId,
+                toColumnId: data.columnId,
+                newOrder: parseInt(data.newOrder, 36),
+              },
+            });
+          } catch (e) {
+            console.error("Failed to parse STOMP message body:", e);
+          }
+        }
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket Error:", error);
+    };
+
+    ws.onclose = (event) => {
+      console.log("WebSocket connection closed:", event);
+    };
+
+    // Cleanup connection on unmount or when projectId changes
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        // Send STOMP DISCONNECT frame before closing
+        ws.send("DISCONNECT\n\n\u0000");
+        ws.close();
+      }
+    };
   }, [projectId]);
 
   return (

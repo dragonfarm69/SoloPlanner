@@ -9,8 +9,9 @@ import org.springframework.stereotype.Service;
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.ProjectTaskRequest;
 import helper.project.planner_helper.DTO.TaskEditRequest;
-import helper.project.planner_helper.DTO.TaskMovedBroadCastEvent;
 import helper.project.planner_helper.DTO.TaskPositionRequest;
+import helper.project.planner_helper.DTO.Events.EventPayload;
+import helper.project.planner_helper.DTO.Events.TaskResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TagEntity;
 import helper.project.planner_helper.Database.TaskColumn;
@@ -77,7 +78,17 @@ public class TaskService {
             String newOrder = Integer.toString(newestOrder, 36);
             task.setOrder(newOrder);
         }
-        return this.taskRepository.save(task);
+
+        TaskEntity createdTask = this.taskRepository.save(task);
+
+        // broad cast the event
+        TaskResponse response = EntityMapper.mapToTaskResponse(createdTask);
+        EventPayload payload = new EventPayload.TaskCreatedEvent(response);
+
+        String destination = "/topic/projects/" + projectId;
+        this.mesageTemplate.convertAndSend(destination, payload);
+
+        return createdTask;
     }
 
     public void deleteTask(String taskId, String projectId, String columnId) {
@@ -209,13 +220,10 @@ public class TaskService {
         this.taskRepository.save(task);
 
         // broad cast the event
-        TaskMovedBroadCastEvent broadcastEvent = new TaskMovedBroadCastEvent(
-                taskId,
-                columnId,
-                newOrder);
-
+        EventPayload payload = new EventPayload.TaskMovedEvent(taskId, columnId, newOrder);
         String destination = "/topic/projects/" + projectId;
-        this.mesageTemplate.convertAndSend(destination, broadcastEvent);
+
+        this.mesageTemplate.convertAndSend(destination, payload);
     }
 
     public List<TaskEntity> getProjectTasks(UUID projectId) {

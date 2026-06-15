@@ -53,10 +53,11 @@ export default function KanbanColumn({
           const toIndex =
             closestEdge === "bottom" ? targetIndex + 1 : targetIndex;
 
-          dispatch({
-            type: "MOVE_TASK",
-            payload: { taskId, toColumnId: column.id, toIndex },
-          });
+          //Disable for now to test websocket
+          // dispatch({
+          //   type: "MOVE_TASK",
+          //   payload: { taskId, toColumnId: column.id, toIndex },
+          // });
 
           try {
             const otherTasks = tasks.filter((t) => t.id !== taskId);
@@ -96,10 +97,10 @@ export default function KanbanColumn({
           }
         } else {
           // Dropped on the column body directly (empty area) — append at end
-          dispatch({
-            type: "MOVE_TASK",
-            payload: { taskId, toColumnId: column.id, toIndex: tasks.length },
-          });
+          // dispatch({
+          //   type: "MOVE_TASK",
+          //   payload: { taskId, toColumnId: column.id, newOrder: tasks.length },
+          // });
 
           try {
             const payload = {

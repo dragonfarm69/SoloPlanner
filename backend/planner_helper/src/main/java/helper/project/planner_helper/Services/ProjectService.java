@@ -5,13 +5,13 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
-import helper.project.planner_helper.DTO.ColumnResponse;
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.ProjectBoardResponse;
 import helper.project.planner_helper.DTO.ProjectColumnRequest;
 import helper.project.planner_helper.DTO.ProjectRequestRecord;
 import helper.project.planner_helper.DTO.ProjectResponseRecord;
 import helper.project.planner_helper.DTO.UserProjectResponse;
+import helper.project.planner_helper.DTO.Events.ColumnResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.UserEntity;

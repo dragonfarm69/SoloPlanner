@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import helper.project.planner_helper.DTO.Events.ColumnResponse;
+import helper.project.planner_helper.DTO.Events.TaskResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.TaskEntity;
@@ -17,6 +19,7 @@ public class EntityMapper {
                 task.getDescription(),
                 task.getPriority() != null ? task.getPriority().name() : null,
                 task.getOrder(),
+                task.getColumn().getId().toString(),
                 task.getDeadline());
     }
 

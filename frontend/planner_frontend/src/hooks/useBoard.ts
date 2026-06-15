@@ -5,13 +5,6 @@ import type { Board, Task, Column } from "../types";
 
 const STORAGE_KEY = "soloplanner-board";
 
-const DEFAULT_COLUMNS: Column[] = [
-  { id: "col-todo", title: "To Do", order: 0, color: "#6366f1" },
-  { id: "col-progress", title: "In Progress", order: 1, color: "#f59e0b" },
-  { id: "col-review", title: "In Review", order: 2, color: "#8b5cf6" },
-  { id: "col-done", title: "Done", order: 3, color: "#34d399" },
-];
-
 const DEFAULT_BOARD: Board = {
   columns: [],
   tasks: [],
@@ -36,7 +29,7 @@ type BoardAction =
   | { type: "DELETE_TASK"; payload: { id: string } }
   | {
       type: "MOVE_TASK";
-      payload: { taskId: string; toColumnId: string; toIndex: number };
+      payload: { taskId: string; toColumnId: string; newOrder: number };
     }
   | { type: "ADD_COLUMN"; payload: { title: string; color: string } }
   | { type: "UPDATE_COLUMN"; payload: { id: string } & Partial<Column> }
@@ -97,40 +90,15 @@ function boardReducer(state: Board, action: BoardAction): Board {
     }
 
     case "MOVE_TASK": {
-      const { taskId, toColumnId, toIndex } = action.payload;
-      const task = state.tasks.find((t) => t.id === taskId);
-      if (!task) return state;
-
-      const fromColumnId = task.columnId;
-
-      // Remove task from its current position
-      let updatedTasks = state.tasks.filter((t) => t.id !== taskId);
-
-      // Reorder the source column
-      updatedTasks = reorderTasksInColumn(updatedTasks, fromColumnId);
-
-      // Get destination column tasks and insert at the right position
-      const destTasks = getTasksForColumn(updatedTasks, toColumnId);
-      const clampedIndex = Math.min(toIndex, destTasks.length);
-
-      // Insert the moved task
-      const movedTask: Task = {
-        ...task,
-        columnId: toColumnId,
-        order: clampedIndex,
-        updatedAt: now,
+      const { taskId, toColumnId, newOrder } = action.payload;
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === taskId
+            ? { ...t, columnId: toColumnId, order: newOrder, updatedAt: now }
+            : t,
+        ),
       };
-
-      // Shift subsequent tasks in the destination column
-      updatedTasks = updatedTasks.map((t) => {
-        if (t.columnId === toColumnId && t.order >= clampedIndex) {
-          return { ...t, order: t.order + 1 };
-        }
-        return t;
-      });
-
-      updatedTasks.push(movedTask);
-      return { ...state, tasks: updatedTasks };
     }
 
     case "ADD_COLUMN": {

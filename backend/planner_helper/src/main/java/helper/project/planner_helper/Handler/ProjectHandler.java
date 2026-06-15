@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import helper.project.planner_helper.DTO.ColumnResponse;
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.ProjectBoardResponse;
 import helper.project.planner_helper.DTO.ProjectColumnRequest;
@@ -25,8 +24,9 @@ import helper.project.planner_helper.DTO.ProjectResponseRecord;
 import helper.project.planner_helper.DTO.ProjectTaskRequest;
 import helper.project.planner_helper.DTO.TaskEditRequest;
 import helper.project.planner_helper.DTO.TaskPositionRequest;
-import helper.project.planner_helper.DTO.TaskResponse;
 import helper.project.planner_helper.DTO.UserProjectResponse;
+import helper.project.planner_helper.DTO.Events.ColumnResponse;
+import helper.project.planner_helper.DTO.Events.TaskResponse;
 import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Services.ProjectService;
 import helper.project.planner_helper.Services.TaskService;
