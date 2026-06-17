@@ -1,0 +1,266 @@
+package agent
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"strings"
+
+	"github.com/dragonfarm/SoloPlanner/config"
+	"github.com/dragonfarm/SoloPlanner/tools"
+	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/llms/ollama"
+)
+
+// maxIterations caps the agent loop to prevent runaway tool chains.
+// If Gemma keeps requesting tools beyond this limit, the call fails with an
+// error rather than looping forever.
+const maxIterations = 6
+
+// baseSystemPrompt is the identity and behaviour contract given to Gemma at
+// the start of every fresh session. It is extended at runtime with user/project
+// context in buildSystemPrompt.
+const baseSystemPrompt = `You are an intelligent AI assistant built into SoloPlanner, a collaborative project management application.
+Your role is to help users understand, organise, and act on their project tasks.
+
+Capabilities:
+- You can fetch a user's projects and the tasks within any project.
+- You can create new tasks on behalf of the user.
+- You have access to a semantic search tool for finding relevant documents (currently limited).
+
+Behaviour rules:
+- Always use the available tools to get live data before answering questions about projects or tasks.
+- Never invent project names, task titles, or IDs. If you don't have the data, fetch it first.
+- When creating a task, confirm the details with the user before calling create_task, unless they explicitly asked you to create one immediately.
+- Keep responses concise, friendly, and focused on the project management context.`
+
+// RunRequest contains all the context the orchestrator needs to handle one
+// user message within a conversation session.
+type RunRequest struct {
+	// SessionID uniquely identifies the WebSocket connection / conversation.
+	// It is server-generated per connection and stable for the connection lifetime.
+	SessionID string
+	// UserID is the Keycloak UUID of the authenticated user.
+	// Passed in each message so tools that need a user identity have it.
+	UserID string
+	// ProjectID is the UUID of the project the frontend is currently displaying.
+	// Optional — empty string is valid when the user has no project open.
+	ProjectID string
+	// Message is the raw user message text.
+	Message string
+}
+
+// Orchestrator drives the agent loop. It is responsible for:
+//  1. Building the full message context (system prompt + history + user message)
+//  2. Calling Ollama (with streaming and tool definitions)
+//  3. Detecting tool calls in the response and executing them via the Registry
+//  4. Looping until Gemma produces a final text answer or the iteration cap is hit
+//  5. Streaming answer tokens to the caller through a channel
+type Orchestrator struct {
+	llm     llms.Model
+	history *ConversationStore
+	tools   *tools.Registry
+}
+
+// New creates an Orchestrator, initialising the Ollama client.
+// Returns an error if Ollama cannot be reached with the given configuration.
+func New(cfg *config.Config, history *ConversationStore, toolReg *tools.Registry) (*Orchestrator, error) {
+	llm, err := ollama.New(
+		ollama.WithModel(cfg.OllamaModel),
+		ollama.WithServerURL(cfg.OllamaHost),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("orchestrator: init ollama client: %w", err)
+	}
+	return &Orchestrator{llm: llm, history: history, tools: toolReg}, nil
+}
+
+// Run handles a single user turn of the conversation.
+//
+// Each Ollama call in the loop streams its output through the streaming
+// callback. When Ollama returns tool calls (no visible text), the tokens are
+// empty and the loop continues silently. When Ollama returns the final text
+// answer, tokens arrive token-by-token and are forwarded to tokenCh so the
+// WebSocket layer can push them to the browser in real time.
+//
+// tokenCh must have a buffer large enough to absorb burst writes without
+// blocking the streaming callback (256 is a safe default). The caller is
+// responsible for draining tokenCh concurrently and must NOT close it — Run
+// will return when it is done.
+func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- string) error {
+	messages := o.buildInitialMessages(req)
+	toolDefs := o.tools.Definitions()
+
+	for iter := 0; iter < maxIterations; iter++ {
+		log.Printf("[orchestrator] session=%s iter=%d → Ollama", req.SessionID, iter)
+
+		var streamBuf strings.Builder
+
+		resp, err := o.llm.GenerateContent(ctx, messages,
+			llms.WithTools(toolDefs),
+			llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+				text := string(chunk)
+				streamBuf.WriteString(text)
+				// Forward the token to the WebSocket writer.
+				// If the context is cancelled (e.g. client disconnected),
+				// stop streaming and propagate the cancellation upward.
+				select {
+				case tokenCh <- text:
+					return nil
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}),
+		)
+		if err != nil {
+			return fmt.Errorf("orchestrator: generate (iter %d): %w", iter, err)
+		}
+		if len(resp.Choices) == 0 {
+			return fmt.Errorf("orchestrator: Ollama returned no choices on iter %d", iter)
+		}
+
+		choice := resp.Choices[0]
+
+		// ── Tool call branch ───────────────────────────────────────────────
+		// Ollama does not stream text when it decides to call tools, so
+		// streamBuf will be empty here. We record the AI's decision in the
+		// history, execute each tool, append the results, and loop.
+		if len(choice.ToolCalls) > 0 {
+			log.Printf("[orchestrator] session=%s iter=%d got %d tool call(s)",
+				req.SessionID, iter, len(choice.ToolCalls))
+
+			// Persist the AI's tool-call decision in the conversation history.
+			aiMsg := buildAIToolCallMessage(choice)
+			messages = append(messages, aiMsg)
+			o.history.Append(req.SessionID, aiMsg)
+
+			// Execute every tool Gemma requested and feed results back.
+			for _, tc := range choice.ToolCalls {
+				result := o.executeTool(tc)
+				log.Printf("[orchestrator] session=%s tool=%s result_bytes=%d",
+					req.SessionID, tc.FunctionCall.Name, len(result))
+
+				toolMsg := buildToolResultMessage(tc, result)
+				messages = append(messages, toolMsg)
+				o.history.Append(req.SessionID, toolMsg)
+			}
+
+			continue // next iteration: re-prompt Gemma with tool results in context
+		}
+
+		// ── Final answer branch ────────────────────────────────────────────
+		// Gemma produced a text response (no tool calls). The tokens have
+		// already been sent to tokenCh by the streaming callback above.
+		// Determine the canonical response text and persist it.
+		finalText := streamBuf.String()
+		if finalText == "" {
+			// Fallback for Ollama builds that don't stream the final answer.
+			finalText = choice.Content
+		}
+
+		assistantMsg := llms.MessageContent{
+			Role:  llms.ChatMessageTypeAI,
+			Parts: []llms.ContentPart{llms.TextPart(finalText)},
+		}
+		o.history.Append(req.SessionID, assistantMsg)
+		log.Printf("[orchestrator] session=%s done after %d iter(s)", req.SessionID, iter+1)
+		return nil
+	}
+
+	return fmt.Errorf("orchestrator: agent loop exceeded %d iterations for session %s — aborting",
+		maxIterations, req.SessionID)
+}
+
+// ── Private helpers ───────────────────────────────────────────────────────────
+
+// buildInitialMessages assembles the full message slice for the current turn:
+//   - System prompt (only on the very first message of a session)
+//   - All prior messages from history
+//   - The current user message
+//
+// The user message is also persisted to history here so it is included in
+// future turns automatically.
+func (o *Orchestrator) buildInitialMessages(req RunRequest) []llms.MessageContent {
+	history := o.history.GetAll(req.SessionID)
+
+	var messages []llms.MessageContent
+	if len(history) == 0 {
+		// Inject system prompt at the start of a fresh session.
+		messages = append(messages, llms.MessageContent{
+			Role:  llms.ChatMessageTypeSystem,
+			Parts: []llms.ContentPart{llms.TextPart(buildSystemPrompt(req))},
+		})
+	} else {
+		messages = history
+	}
+
+	userMsg := llms.MessageContent{
+		Role:  llms.ChatMessageTypeHuman,
+		Parts: []llms.ContentPart{llms.TextPart(req.Message)},
+	}
+	messages = append(messages, userMsg)
+	o.history.Append(req.SessionID, userMsg)
+
+	return messages
+}
+
+// buildSystemPrompt constructs the system prompt by appending any available
+// runtime context (user ID, current project) to the base prompt. This gives
+// Gemma concrete IDs it can pass directly to tools without asking the user.
+func buildSystemPrompt(req RunRequest) string {
+	var sb strings.Builder
+	sb.WriteString(baseSystemPrompt)
+
+	if req.UserID != "" {
+		fmt.Fprintf(&sb, "\n\nContext — current user ID: %s", req.UserID)
+	}
+	if req.ProjectID != "" {
+		fmt.Fprintf(&sb, "\nContext — currently open project ID: %s", req.ProjectID)
+	}
+	return sb.String()
+}
+
+// buildAIToolCallMessage creates the assistant message that records Gemma's
+// decision to call tools. This is added to the history so the model can see
+// its own prior tool requests when it reads the conversation context.
+func buildAIToolCallMessage(choice *llms.ContentChoice) llms.MessageContent {
+	parts := make([]llms.ContentPart, 0, len(choice.ToolCalls)+1)
+	if choice.Content != "" {
+		parts = append(parts, llms.TextPart(choice.Content))
+	}
+	// llms.ToolCall implements llms.ContentPart via its GetType() method.
+	for i := range choice.ToolCalls {
+		parts = append(parts, choice.ToolCalls[i])
+	}
+	return llms.MessageContent{
+		Role:  llms.ChatMessageTypeAI,
+		Parts: parts,
+	}
+}
+
+// buildToolResultMessage wraps the raw tool output in the llms.MessageContent
+// format that Ollama expects when tool results are fed back into the context.
+func buildToolResultMessage(tc llms.ToolCall, result string) llms.MessageContent {
+	return llms.MessageContent{
+		Role: llms.ChatMessageTypeTool,
+		Parts: []llms.ContentPart{
+			llms.ToolCallResponse{
+				ToolCallID: tc.ID,
+				Name:       tc.FunctionCall.Name,
+				Content:    result,
+			},
+		},
+	}
+}
+
+// executeTool calls the registry and returns a JSON-safe result string.
+// On failure it returns a JSON error object instead of propagating the error,
+// so Gemma can reason about the failure and explain it to the user gracefully.
+func (o *Orchestrator) executeTool(tc llms.ToolCall) string {
+	result, err := o.tools.Execute(tc.FunctionCall.Name, tc.FunctionCall.Arguments)
+	if err != nil {
+		log.Printf("[orchestrator] tool %s failed: %v", tc.FunctionCall.Name, err)
+		return fmt.Sprintf(`{"error":%q}`, err.Error())
+	}
+	return result
+}

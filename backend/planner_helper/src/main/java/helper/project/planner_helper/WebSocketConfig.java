@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -15,15 +14,10 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
-import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import helper.HandShakeInterceptor;
-import helper.project.planner_helper.DTO.EntityMapper;
-import helper.project.planner_helper.DTO.UserResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.UserEntity;
-import helper.project.planner_helper.Repository.ProjectRepository;
-import helper.project.planner_helper.Repository.UserRepository;
 import helper.project.planner_helper.Services.ProjectService;
 import helper.project.planner_helper.Services.UserService;
 import tools.jackson.core.type.TypeReference;
