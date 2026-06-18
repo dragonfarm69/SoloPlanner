@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import helper.project.planner_helper.DTO.Events.ColumnResponse;
 import helper.project.planner_helper.DTO.Events.TaskResponse;
+import helper.project.planner_helper.Database.ConversationEntity;
+import helper.project.planner_helper.Database.MessageEntity;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.TaskEntity;
@@ -99,4 +101,23 @@ public class EntityMapper {
         }
         return UUID.fromString(id);
     }
+
+    public static ConversationResponse mapToConversationResponse(ConversationEntity conversation) {
+        return new ConversationResponse(
+                conversation.getId(),
+                conversation.getTitle(),
+                conversation.getUser().getId(),
+                conversation.getProject().getId(),
+                conversation.getCreatedDate(),
+                conversation.getLastEdited());
+    }
+
+    public static MessageResponse mapToMessageResponse(MessageEntity message) {
+        return new MessageResponse(
+                message.getId(),
+                message.getContent(),
+                message.getRole().name(),
+                message.getCreatedDate());
+    }
 }
+
