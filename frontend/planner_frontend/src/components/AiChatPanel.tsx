@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import "./AiChatPanel.css";
 
 // ─── Types ───────────────────────────────
@@ -39,9 +40,15 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connecting" | "connected" | "disconnected"
+  >("connecting");
+
+  const { projectId } = useParams<{ projectId: string }>();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const socketRef = useRef<WebSocket | null>(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -67,33 +74,54 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
   }, [onClose]);
 
   // ─── Send Message ────────────────────
-  const sendMessage = useCallback((content: string) => {
-    const trimmed = content.trim();
-    if (!trimmed) return;
+  const sendMessage = useCallback(
+    (content: string) => {
+      const trimmed = content.trim();
+      if (!trimmed) return;
 
-    const userMessage: ChatMessage = {
-      id: generateId(),
-      role: "user",
-      content: trimmed,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
-    setIsTyping(true);
-
-    // Simulate AI reply after a short delay
-    setTimeout(() => {
-      const aiMessage: ChatMessage = {
+      const userMessage: ChatMessage = {
         id: generateId(),
-        role: "assistant",
-        content: MOCK_AI_REPLY,
+        role: "user",
+        content: trimmed,
         timestamp: new Date(),
       };
-      setIsTyping(false);
-      setMessages((prev) => [...prev, aiMessage]);
-    }, 1200);
-  }, []);
+
+      setMessages((prev) => [...prev, userMessage]);
+      setInputValue("");
+      setIsTyping(true);
+
+      const userId = localStorage.getItem("user_id") || "anonymous";
+
+      if (
+        socketRef.current &&
+        socketRef.current.readyState === WebSocket.OPEN
+      ) {
+        const payload = {
+          type: "chat",
+          userId,
+          projectId: projectId || "",
+          message: trimmed,
+        };
+        socketRef.current.send(JSON.stringify(payload));
+      } else {
+        // Fallback message if socket connection is down
+        setTimeout(() => {
+          setIsTyping(false);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateId(),
+              role: "assistant",
+              content:
+                "Could not connect to the AI Assistant. Please ensure the microservice is running and reload.",
+              timestamp: new Date(),
+            },
+          ]);
+        }, 500);
+      }
+    },
+    [projectId],
+  );
 
   // ─── Input Handlers ──────────────────
   const handleKeyDown = useCallback(
@@ -117,10 +145,106 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
 
   const hasMessages = messages.length > 0;
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let socket: WebSocket;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
+
+    function connect() {
+      setConnectionStatus("connecting");
+      socket = new WebSocket("ws://localhost:8090/ws");
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        console.log("[ws] AI connection established");
+        setConnectionStatus("connected");
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === "token") {
+            setIsTyping(false);
+            setMessages((prev) => {
+              const lastMsg = prev[prev.length - 1];
+              if (lastMsg && lastMsg.role === "assistant") {
+                return [
+                  ...prev.slice(0, -1),
+                  { ...lastMsg, content: lastMsg.content + data.chunk },
+                ];
+              } else {
+                return [
+                  ...prev,
+                  {
+                    id: generateId(),
+                    role: "assistant",
+                    content: data.chunk,
+                    timestamp: new Date(),
+                  },
+                ];
+              }
+            });
+          } else if (data.type === "done") {
+            setIsTyping(false);
+            setMessages((prev) => {
+              const lastMsg = prev[prev.length - 1];
+              if (lastMsg && lastMsg.role === "assistant") {
+                return [
+                  ...prev.slice(0, -1),
+                  { ...lastMsg, content: data.fullText },
+                ];
+              }
+              return prev;
+            });
+          } else if (data.type === "error") {
+            setIsTyping(false);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: generateId(),
+                role: "assistant",
+                content: `Error: ${data.message || "Something went wrong."}`,
+                timestamp: new Date(),
+              },
+            ]);
+          }
+        } catch (err) {
+          console.error("Failed to parse websocket message", err);
+        }
+      };
+
+      socket.onerror = (error) => {
+        console.error("[ws] AI WebSocket error:", error);
+      };
+
+      socket.onclose = () => {
+        console.log("[ws] AI connection closed");
+        setConnectionStatus("disconnected");
+        reconnectTimeout = setTimeout(() => {
+          if (isOpen) connect();
+        }, 3000);
+      };
+    }
+
+    connect();
+
+    return () => {
+      if (socket) {
+        socket.onclose = null;
+        socket.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+    };
+  }, [isOpen]);
+
   return (
     <>
       {/* Backdrop overlay */}
-      <div className="chat-overlay" onClick={onClose} />
+      <div className="" onClick={onClose} />
 
       {/* Panel */}
       <div
@@ -138,8 +262,22 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
             <div className="chat-header-info">
               <span className="chat-header-title">AI Assistant</span>
               <span className="chat-header-status">
-                <span className="chat-status-dot" aria-hidden="true" />
-                Online
+                <span
+                  className="chat-status-dot"
+                  style={{
+                    backgroundColor:
+                      connectionStatus === "connected"
+                        ? "var(--success)"
+                        : connectionStatus === "connecting"
+                          ? "var(--warning)"
+                          : "var(--error)",
+                  }}
+                  aria-hidden="true"
+                />
+                {connectionStatus === "connected" && "Online"}
+                {connectionStatus === "connecting" && "Connecting..."}
+                {connectionStatus === "disconnected" &&
+                  "Offline (reconnecting)"}
               </span>
             </div>
           </div>

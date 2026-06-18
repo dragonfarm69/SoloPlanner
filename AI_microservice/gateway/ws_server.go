@@ -115,15 +115,21 @@ func (s *WSServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleConnection is the per-connection goroutine. It owns the read loop and
-// dispatches each inbound message to handleChatMessage (which blocks until the
-// AI response is fully streamed). This serialises handling per connection,
-// which is the correct behaviour for a chat interface.
+// dispatches each inbound message to a background worker to serialize execution
+// per connection. This ensures the main read loop remains unblocked to handle
+// pings/pongs and client control frames.
 func (s *WSServer) handleConnection(conn *websocket.Conn) {
 	// Generate a server-side session ID that is stable for the connection lifetime.
 	sessionID := newSessionID()
 
 	cw := newConnWriter(conn)
+	requests := make(chan chatRequest, 8)
+
+	// Start worker goroutine to process chat requests sequentially.
+	go s.connectionWorker(conn, cw, sessionID, requests)
+
 	defer func() {
+		close(requests)
 		conn.Close()
 		log.Printf("[ws] connection closed — session=%s addr=%s", sessionID, conn.RemoteAddr())
 	}()
@@ -159,6 +165,9 @@ func (s *WSServer) handleConnection(conn *websocket.Conn) {
 			return
 		}
 
+		// Reset read deadline on successful message receipt.
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+
 		var req chatRequest
 		if err := json.Unmarshal(raw, &req); err != nil {
 			cw.writeJSON(wsEvent{Type: "error", Message: "invalid JSON: " + err.Error()})
@@ -171,11 +180,22 @@ func (s *WSServer) handleConnection(conn *websocket.Conn) {
 				cw.writeJSON(wsEvent{Type: "error", Message: "message field must not be empty"})
 				continue
 			}
-			s.handleChatMessage(conn, cw, sessionID, req)
+			select {
+			case requests <- req:
+			default:
+				cw.writeJSON(wsEvent{Type: "error", Message: "busy processing another request"})
+			}
 
 		default:
 			cw.writeJSON(wsEvent{Type: "error", Message: "unsupported message type: " + req.Type})
 		}
+	}
+}
+
+// connectionWorker sequentially processes incoming chat requests for this connection.
+func (s *WSServer) connectionWorker(conn *websocket.Conn, cw *connWriter, sessionID string, requests <-chan chatRequest) {
+	for req := range requests {
+		s.handleChatMessage(conn, cw, sessionID, req)
 	}
 }
 
