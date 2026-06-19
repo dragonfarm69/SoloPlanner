@@ -121,6 +121,7 @@ func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- s
 		}
 
 		choice := resp.Choices[0]
+		log.Printf("DEBUG: Raw Content: %q | ToolCalls: %+v", choice.Content, choice.ToolCalls)
 
 		// ── Tool call branch ───────────────────────────────────────────────
 		// Ollama does not stream text when it decides to call tools, so
@@ -165,6 +166,11 @@ func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- s
 		}
 		o.history.Append(req.SessionID, assistantMsg)
 		log.Printf("[orchestrator] session=%s done after %d iter(s)", req.SessionID, iter+1)
+
+		//test
+		log.Println("Message: ", finalText)
+		// message, _ := o.generateMessageContext(ctx, finalText)
+		// println("Message context: ", message)
 		return nil
 	}
 
@@ -264,4 +270,23 @@ func (o *Orchestrator) executeTool(tc llms.ToolCall) string {
 		return fmt.Sprintf(`{"error":%q}`, err.Error())
 	}
 	return result
+}
+
+func (o *Orchestrator) generateMessageContext(ctx context.Context, message string) (string, error) {
+	prompt := fmt.Sprintf("Summarize the following chat message to extract the main intent, topic, and context for semantic storage. Keep the response concise, representing only the core meaning:\n\n%s", message)
+	resp, err := o.llm.GenerateContent(ctx, []llms.MessageContent{
+		{
+			Role:  llms.ChatMessageTypeHuman,
+			Parts: []llms.ContentPart{llms.TextPart(prompt)},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("generateMessageContext: %w", err)
+	}
+	if len(resp.Choices) == 0 {
+		return "", fmt.Errorf("generateMessageContext: model returned no choices")
+	}
+	// Extract the summarized text response
+	summary := resp.Choices[0].Content
+	return strings.TrimSpace(summary), nil
 }

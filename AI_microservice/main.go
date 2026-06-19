@@ -26,7 +26,11 @@ func main() {
 	// read-only after this point, so no locking is needed at runtime.
 	registry := tools.NewRegistry()
 	tools.NewProjectTools(cfg.JavaBackendURL).RegisterAll(registry)
-	tools.NewVectorTools().RegisterAll(registry)
+	vectorTools, err := tools.NewVectorTools(cfg.QdrantAddr)
+	if err != nil {
+		log.Fatalf("FATAL: failed to connect to Qdrant: %v", err)
+	}
+	vectorTools.RegisterAll(registry)
 
 	// ── Orchestrator ──────────────────────────────────────────────────────
 	// The orchestrator owns the Ollama client and drives the agent loop.

@@ -1,6 +1,11 @@
 package tools
 
-import "github.com/tmc/langchaingo/llms"
+import (
+	pb "github.com/qdrant/go-client/qdrant"
+	"github.com/tmc/langchaingo/llms"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
 
 // VectorTools provides semantic search capabilities over project documents.
 //
@@ -8,10 +13,19 @@ import "github.com/tmc/langchaingo/llms"
 // yet. The tool is registered so Gemma knows it exists; the body returns an
 // empty result set with an explanatory note. When a vector store is added to
 // docker_setup.yml, replace SearchVectorDatabase with a real implementation.
-type VectorTools struct{}
+type VectorTools struct {
+	client pb.PointsClient
+	conn   *grpc.ClientConn
+}
 
 // NewVectorTools creates a VectorTools.
-func NewVectorTools() *VectorTools { return &VectorTools{} }
+func NewVectorTools(addr string) (*VectorTools, error) {
+	client, conn, err := connectQdrant(addr)
+	if err != nil {
+		return nil, err
+	}
+	return &VectorTools{client: client, conn: conn}, nil
+}
 
 // RegisterAll registers the semantic search tool on the given Registry.
 func (vt *VectorTools) RegisterAll(r *Registry) {
@@ -40,6 +54,14 @@ func (vt *VectorTools) searchDef() llms.Tool {
 			},
 		},
 	}
+}
+
+func connectQdrant(addr string) (pb.PointsClient, *grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, nil, err
+	}
+	return pb.NewPointsClient(conn), conn, nil
 }
 
 // SearchVectorDatabase is a stub returning an empty result set.

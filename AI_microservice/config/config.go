@@ -17,6 +17,8 @@ type Config struct {
 	InternalSecret string
 	// Port is the TCP port this service listens on.
 	Port string
+
+	QdrantAddr string
 }
 
 // Load reads configuration from environment variables, falling back to
@@ -28,6 +30,7 @@ func Load() *Config {
 		JavaBackendURL: getenv("JAVA_BACKEND_URL", "http://localhost:8081"),
 		InternalSecret: getenv("INTERNAL_SECRET", "changeme"),
 		Port:           getenv("PORT", "8090"),
+		QdrantAddr:     getenv("QDRANT_ADDR", "localhost:6334"),
 	}
 }
 
