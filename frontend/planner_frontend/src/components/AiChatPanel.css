@@ -367,7 +367,9 @@
 }
 
 @keyframes typingBounce {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
     opacity: 0.4;
   }
@@ -375,4 +377,117 @@
     transform: translateY(-4px);
     opacity: 1;
   }
+}
+
+/* ─── Markdown Styles ────────────────── */
+
+.chat-markdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-markdown-p {
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.6;
+}
+
+.chat-markdown-p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-message--user .chat-markdown-inline-code {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.chat-message--assistant .chat-markdown-inline-code {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--accent-light);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.chat-markdown-code-block {
+  background: #12131a;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin: var(--space-2) 0;
+  overflow-x: auto;
+  width: 100%;
+}
+
+.chat-markdown-code-block code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: #e4e5eb;
+  line-height: 1.5;
+}
+
+.chat-markdown-ul,
+.chat-markdown-ol {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-5);
+  display: block;
+}
+
+.chat-markdown-ul {
+  list-style-type: disc;
+}
+
+.chat-markdown-ol {
+  list-style-type: decimal;
+}
+
+.chat-markdown-li {
+  margin-bottom: var(--space-1);
+  line-height: 1.5;
+  display: list-item;
+}
+
+.chat-markdown-li:last-child {
+  margin-bottom: 0;
+}
+
+.chat-markdown-h1,
+.chat-markdown-h2,
+.chat-markdown-h3 {
+  color: var(--text-primary);
+  font-weight: var(--weight-bold);
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.chat-markdown-h1 {
+  font-size: var(--text-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-1);
+}
+
+.chat-markdown-h2 {
+  font-size: var(--text-md);
+}
+
+.chat-markdown-h3 {
+  font-size: var(--text-sm);
+}
+
+.chat-message-bubble a {
+  color: var(--accent-light);
+  text-decoration: underline;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.chat-message--user .chat-message-bubble a {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.chat-message-bubble a:hover {
+  color: var(--accent-lighter);
 }

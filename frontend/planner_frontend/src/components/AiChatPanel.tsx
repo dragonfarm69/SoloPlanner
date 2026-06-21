@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import "./AiChatPanel.css";
 
 // ─── Types ───────────────────────────────
@@ -303,7 +304,40 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
                   {msg.role === "assistant" ? "✦" : "●"}
                 </div>
                 <div className="chat-message-content">
-                  <div className="chat-message-bubble">{msg.content}</div>
+                  <div className="chat-message-bubble">
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="chat-markdown-p">{children}</p>,
+                        a: ({ href, children }) => (
+                          <a href={href} target="_blank" rel="noopener noreferrer">
+                            {children}
+                          </a>
+                        ),
+                        code: ({ className, children, ...props }) => {
+                          const match = /language-(\w+)/.exec(className || "");
+                          return match ? (
+                            <pre className="chat-markdown-code-block">
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            </pre>
+                          ) : (
+                            <code className="chat-markdown-inline-code" {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                        ul: ({ children }) => <ul className="chat-markdown-ul">{children}</ul>,
+                        ol: ({ children }) => <ol className="chat-markdown-ol">{children}</ol>,
+                        li: ({ children }) => <li className="chat-markdown-li">{children}</li>,
+                        h1: ({ children }) => <h1 className="chat-markdown-h1">{children}</h1>,
+                        h2: ({ children }) => <h2 className="chat-markdown-h2">{children}</h2>,
+                        h3: ({ children }) => <h3 className="chat-markdown-h3">{children}</h3>,
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
                   <span className="chat-message-time">
                     {formatTime(msg.timestamp)}
                   </span>
