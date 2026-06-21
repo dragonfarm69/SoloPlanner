@@ -94,8 +94,8 @@ services:
       /bin/sh -c "
         echo 'Waiting for Ollama to be ready...';
         until ollama list > /dev/null 2>&1; do sleep 3; done;
-        echo 'Pulling gemma4 model...';
-        ollama pull gemma4;
+        echo 'Pulling qwen2.5:7b model...';
+        ollama pull qwen2.5:7b;
         echo 'Pulling znbang/bge:small-en-v1.5-f32 model...';
         ollama pull znbang/bge:small-en-v1.5-f32;
         echo 'Done.';

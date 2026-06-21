@@ -244,20 +244,20 @@ func (s *WSServer) handleChatMessage(conn *websocket.Conn, cw *connWriter, sessi
 		return
 	}
 
-	bgCtx := context.WithoutCancel(ctx)
-	bgCtx, bgCancel := context.WithTimeout(bgCtx, 3*time.Minute)
+	// bgCtx := context.WithoutCancel(ctx)
+	// bgCtx, bgCancel := context.WithTimeout(bgCtx, 3*time.Minute)
 
 	// TODO: save to qdrant
-	go func() {
-		defer bgCancel()
-		err := s.orchestrator.GenerateAndStoreContext(bgCtx, req.UserID, req.ProjectID, req.Message)
+	// go func() {
+	// 	defer bgCancel()
+	// 	err := s.orchestrator.GenerateAndStoreContext(bgCtx, req.UserID, req.ProjectID, req.Message)
 
-		if err != nil {
-			log.Println("[orchestrator] Error when trying to generate context: ", err)
-		}
+	// 	if err != nil {
+	// 		log.Println("[orchestrator] Error when trying to generate context: ", err)
+	// 	}
 
-		log.Println("orchestrator] STORED new message in qdrant")
-	}()
+	// 	log.Println("orchestrator] STORED new message in qdrant")
+	// }()
 
 	// All tokens sent successfully — tell the browser the response is complete.
 	cw.writeJSON(wsEvent{Type: "done", FullText: fullText.String()})

@@ -26,7 +26,7 @@ type Config struct {
 func Load() *Config {
 	return &Config{
 		OllamaHost:     getenv("OLLAMA_HOST", "http://localhost:11434"),
-		OllamaModel:    getenv("OLLAMA_MODEL", "gemma4"),
+		OllamaModel:    getenv("OLLAMA_MODEL", "qwen2.5:7b"),
 		JavaBackendURL: getenv("JAVA_BACKEND_URL", "http://localhost:8081"),
 		InternalSecret: getenv("INTERNAL_SECRET", "changeme"),
 		Port:           getenv("PORT", "8090"),

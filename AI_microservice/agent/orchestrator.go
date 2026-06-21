@@ -10,6 +10,7 @@ import (
 	"github.com/dragonfarm/SoloPlanner/tools"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
+	"github.com/tmc/langchaingo/llms/openai"
 )
 
 // maxIterations caps the agent loop to prevent runaway tool chains.
@@ -20,14 +21,17 @@ const maxIterations = 6
 // baseSystemPrompt is the identity and behaviour contract given to Gemma at
 // the start of every fresh session. It is extended at runtime with user/project
 // context in buildSystemPrompt.
-const baseSystemPrompt = `You are an intelligent AI assistant built into SoloPlanner, a collaborative project management application.
-Your role is to help users understand, organise, and act on their project tasks.
+const baseSystemPrompt = `You are a project management assistant. 
+Review the user's message. If you require extra data to satisfy the user, you must execute one of your tools. 
+If no tool execution is required or possible given the current context, you MUST provide a natural language response explaining what you need or welcoming the user. Never return an empty message.
 
 Capabilities:
 - You can fetch a user's projects and the tasks within any project.
 - You can create new tasks or move tasks on behalf of the user.
 - You can create columns or move columns on behalf of the user.
 - You have access to a semantic search tool for finding relevant documents (currently limited).
+- You do not have access to a Python interpreter or any internal 'google:tool_code' tools. 
+- You are strictly forbidden from writing code blocks or raw script commands to execute tasks. 
 
 Behaviour rules:
 - Always use the available tools to get live data before answering questions about projects or tasks.
@@ -68,12 +72,13 @@ type Orchestrator struct {
 // New creates an Orchestrator, initialising the Ollama client.
 // Returns an error if Ollama cannot be reached with the given configuration.
 func New(cfg *config.Config, history *ConversationStore, toolReg *tools.Registry, vectorTools *tools.VectorTools) (*Orchestrator, error) {
-	llm, err := ollama.New(
-		ollama.WithModel(cfg.OllamaModel),
-		ollama.WithServerURL(cfg.OllamaHost),
+	llm, err := openai.New(
+		openai.WithModel(cfg.OllamaModel),
+		openai.WithBaseURL(cfg.OllamaHost+"/v1"),
+		openai.WithToken("ollama"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("orchestrator: init ollama client: %w", err)
+		return nil, fmt.Errorf("orchestrator: init openai client: %w", err)
 	}
 
 	vectorLLM, err := ollama.New(
@@ -108,6 +113,11 @@ func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- s
 
 		var streamBuf strings.Builder
 
+		log.Printf("[orchestrator] sending %d tool definitions", len(toolDefs))
+		for _, td := range toolDefs {
+			log.Printf("  tool: %s", td.Function.Name)
+		}
+
 		resp, err := o.llm.GenerateContent(ctx, messages,
 			llms.WithTools(toolDefs),
 			llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
@@ -124,6 +134,7 @@ func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- s
 				}
 			}),
 		)
+		log.Printf("DEBUG: streamBuf=%q", streamBuf.String())
 		if err != nil {
 			return fmt.Errorf("orchestrator: generate (iter %d): %w", iter, err)
 		}
@@ -275,6 +286,7 @@ func buildToolResultMessage(tc llms.ToolCall, result string) llms.MessageContent
 // On failure it returns a JSON error object instead of propagating the error,
 // so Gemma can reason about the failure and explain it to the user gracefully.
 func (o *Orchestrator) executeTool(tc llms.ToolCall) string {
+	log.Println("CALLING ", tc.FunctionCall.Name)
 	result, err := o.tools.Execute(tc.FunctionCall.Name, tc.FunctionCall.Arguments)
 	if err != nil {
 		log.Printf("[orchestrator] tool %s failed: %v", tc.FunctionCall.Name, err)

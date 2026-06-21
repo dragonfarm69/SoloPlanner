@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -48,7 +49,7 @@ func (pt *ProjectTools) getUserProjectsDef() llms.Tool {
 				"properties": map[string]any{
 					"userId": map[string]any{
 						"type":        "string",
-						"description": "The Keycloak UUID of the user.",
+						"description": "The Keycloak UUID of the user. Example format: \"91925047-a8af-49a0-999a-f1f1b03d8bd4\"",
 					},
 				},
 				"required": []string{"userId"},
@@ -62,19 +63,20 @@ func (pt *ProjectTools) getProjectTasksDef() llms.Tool {
 		Type: "function",
 		Function: &llms.FunctionDefinition{
 			Name:        "get_project_tasks",
-			Description: "Fetches the full board layout — all columns and their tasks — for a specific project.",
+			Description: "Get all tasks and columns for a specific workspace project ID.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"projectId": map[string]any{
 						"type":        "string",
-						"description": "UUID of the project whose board to fetch.",
+						"description": "The target project UUID string wrapped in double quotes.",
 					},
 				},
 				"required": []string{"projectId"},
 			},
 		},
 	}
+
 }
 
 func (pt *ProjectTools) createTaskDef() llms.Tool {
@@ -133,6 +135,7 @@ func (pt *ProjectTools) GetUserProjects(args string) (string, error) {
 
 // GetProjectTasks calls GET /projects/{projectId}/board on the Java backend.
 func (pt *ProjectTools) GetProjectTasks(args string) (string, error) {
+	log.Println("CALLING ME")
 	var params struct {
 		ProjectID string `json:"projectId"`
 	}
