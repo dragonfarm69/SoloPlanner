@@ -17,12 +17,12 @@ import (
 
 // WebSocket configuration constants.
 const (
-	writeTimeout    = 10 * time.Second  // max time to write a single frame
-	pongWait        = 60 * time.Second  // max time between pongs from the client
-	pingInterval    = 50 * time.Second  // how often the server sends pings
-	maxMessageBytes = 32 * 1024         // max inbound message size (32 KB)
-	tokenBufSize    = 256               // channel buffer for streaming tokens
-	chatTimeout     = 5 * time.Minute   // max total time to produce one AI response
+	writeTimeout    = 10 * time.Second // max time to write a single frame
+	pongWait        = 60 * time.Second // max time between pongs from the client
+	pingInterval    = 50 * time.Second // how often the server sends pings
+	maxMessageBytes = 32 * 1024        // max inbound message size (32 KB)
+	tokenBufSize    = 256              // channel buffer for streaming tokens
+	chatTimeout     = 5 * time.Minute  // max total time to produce one AI response
 )
 
 var upgrader = websocket.Upgrader{
@@ -243,6 +243,21 @@ func (s *WSServer) handleChatMessage(conn *websocket.Conn, cw *connWriter, sessi
 		cw.writeJSON(wsEvent{Type: "error", Message: err.Error()})
 		return
 	}
+
+	bgCtx := context.WithoutCancel(ctx)
+	bgCtx, bgCancel := context.WithTimeout(bgCtx, 3*time.Minute)
+
+	// TODO: save to qdrant
+	go func() {
+		defer bgCancel()
+		err := s.orchestrator.GenerateAndStoreContext(bgCtx, req.UserID, req.ProjectID, req.Message)
+
+		if err != nil {
+			log.Println("[orchestrator] Error when trying to generate context: ", err)
+		}
+
+		log.Println("orchestrator] STORED new message in qdrant")
+	}()
 
 	// All tokens sent successfully — tell the browser the response is complete.
 	cw.writeJSON(wsEvent{Type: "done", FullText: fullText.String()})

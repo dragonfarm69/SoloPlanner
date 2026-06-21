@@ -58,14 +58,16 @@ type RunRequest struct {
 //  4. Looping until Gemma produces a final text answer or the iteration cap is hit
 //  5. Streaming answer tokens to the caller through a channel
 type Orchestrator struct {
-	llm     llms.Model
-	history *ConversationStore
-	tools   *tools.Registry
+	llm         llms.Model
+	vectorLLM   llms.Model
+	history     *ConversationStore
+	tools       *tools.Registry
+	vectorTools *tools.VectorTools
 }
 
 // New creates an Orchestrator, initialising the Ollama client.
 // Returns an error if Ollama cannot be reached with the given configuration.
-func New(cfg *config.Config, history *ConversationStore, toolReg *tools.Registry) (*Orchestrator, error) {
+func New(cfg *config.Config, history *ConversationStore, toolReg *tools.Registry, vectorTools *tools.VectorTools) (*Orchestrator, error) {
 	llm, err := ollama.New(
 		ollama.WithModel(cfg.OllamaModel),
 		ollama.WithServerURL(cfg.OllamaHost),
@@ -73,7 +75,16 @@ func New(cfg *config.Config, history *ConversationStore, toolReg *tools.Registry
 	if err != nil {
 		return nil, fmt.Errorf("orchestrator: init ollama client: %w", err)
 	}
-	return &Orchestrator{llm: llm, history: history, tools: toolReg}, nil
+
+	vectorLLM, err := ollama.New(
+		ollama.WithModel("znbang/bge:small-en-v1.5-f32"),
+		ollama.WithServerURL(cfg.OllamaHost),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("orchestrator: init ollama vector client: %w", err)
+	}
+
+	return &Orchestrator{llm: llm, vectorLLM: vectorLLM, history: history, tools: toolReg, vectorTools: vectorTools}, nil
 }
 
 // Run handles a single user turn of the conversation.
@@ -272,7 +283,7 @@ func (o *Orchestrator) executeTool(tc llms.ToolCall) string {
 	return result
 }
 
-func (o *Orchestrator) generateMessageContext(ctx context.Context, message string) (string, error) {
+func (o *Orchestrator) GenerateMessageContext(ctx context.Context, message string) (string, error) {
 	prompt := fmt.Sprintf("Summarize the following chat message to extract the main intent, topic, and context for semantic storage. Keep the response concise, representing only the core meaning:\n\n%s", message)
 	resp, err := o.llm.GenerateContent(ctx, []llms.MessageContent{
 		{
@@ -289,4 +300,37 @@ func (o *Orchestrator) generateMessageContext(ctx context.Context, message strin
 	// Extract the summarized text response
 	summary := resp.Choices[0].Content
 	return strings.TrimSpace(summary), nil
+}
+
+// Generate vector for storing in qdrant
+func (o *Orchestrator) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
+	embedder, ok := o.vectorLLM.(interface {
+		CreateEmbedding(ctx context.Context, text []string) ([][]float32, error)
+	})
+
+	if !ok {
+		return nil, fmt.Errorf("generateEmbedding: vectorLLM does not support embedding creation")
+	}
+
+	vectors, err := embedder.CreateEmbedding(ctx, []string{text})
+	if err != nil {
+		return nil, fmt.Errorf("generateEmbedding: %w", err)
+	}
+	if len(vectors) == 0 {
+		return nil, fmt.Errorf("generateEmbedding: model returned empty embedding")
+	}
+
+	return vectors[0], nil
+}
+
+func (o *Orchestrator) GenerateAndStoreContext(ctx context.Context, userID, projectId, message string) error {
+	vector, err := o.GenerateEmbedding(ctx, message)
+	if err != nil {
+		return fmt.Errorf("GenerateAndStoreContext: embed: %w", err)
+	}
+
+	if err := o.vectorTools.UpsertMessageContext(ctx, userID, projectId, message, vector); err != nil {
+		return fmt.Errorf("GenerateAndStoreContext: upsert: %w", err)
+	}
+	return nil
 }

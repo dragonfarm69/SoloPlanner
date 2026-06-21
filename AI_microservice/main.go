@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -32,9 +33,13 @@ func main() {
 	}
 	vectorTools.RegisterAll(registry)
 
+	if err := vectorTools.EnsureCollection(context.Background()); err != nil {
+		log.Printf("Warning: could not ensure Qdrant collection: %v", err)
+	}
+
 	// ── Orchestrator ──────────────────────────────────────────────────────
 	// The orchestrator owns the Ollama client and drives the agent loop.
-	orch, err := agent.New(cfg, history, registry)
+	orch, err := agent.New(cfg, history, registry, vectorTools)
 	if err != nil {
 		log.Fatalf("FATAL: failed to initialise orchestrator: %v", err)
 	}

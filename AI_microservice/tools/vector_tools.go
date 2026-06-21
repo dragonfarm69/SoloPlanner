@@ -1,11 +1,17 @@
 package tools
 
 import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/google/uuid"
+	"github.com/qdrant/go-client/qdrant"
 	pb "github.com/qdrant/go-client/qdrant"
 	"github.com/tmc/langchaingo/llms"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
+
+const collectionName = "message_contexts"
 
 // VectorTools provides semantic search capabilities over project documents.
 //
@@ -14,17 +20,17 @@ import (
 // empty result set with an explanatory note. When a vector store is added to
 // docker_setup.yml, replace SearchVectorDatabase with a real implementation.
 type VectorTools struct {
-	client pb.PointsClient
-	conn   *grpc.ClientConn
+	conn *pb.Client
 }
 
 // NewVectorTools creates a VectorTools.
 func NewVectorTools(addr string) (*VectorTools, error) {
-	client, conn, err := connectQdrant(addr)
+	conn, err := connectQdrant(addr)
 	if err != nil {
 		return nil, err
 	}
-	return &VectorTools{client: client, conn: conn}, nil
+
+	return &VectorTools{conn: conn}, nil
 }
 
 // RegisterAll registers the semantic search tool on the given Registry.
@@ -56,12 +62,63 @@ func (vt *VectorTools) searchDef() llms.Tool {
 	}
 }
 
-func connectQdrant(addr string) (pb.PointsClient, *grpc.ClientConn, error) {
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func connectQdrant(addr string) (*pb.Client, error) {
+	conn, err := pb.NewClient(&pb.Config{
+		Host: "localhost",
+		Port: 6334,
+	})
+
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return pb.NewPointsClient(conn), conn, nil
+
+	return conn, nil
+}
+
+func (vt *VectorTools) UpsertMessageContext(ctx context.Context, userID, projectId, originalMsg string, vector []float32) error {
+	id := uuid.New().String()
+	_, err := vt.conn.Upsert(ctx, &pb.UpsertPoints{
+		CollectionName: collectionName,
+		Points: []*pb.PointStruct{
+			{
+				Id: &pb.PointId{
+					PointIdOptions: &pb.PointId_Uuid{Uuid: id},
+				},
+				Vectors: &pb.Vectors{
+					VectorsOptions: &pb.Vectors_Vector{
+						Vector: &pb.Vector{Data: vector},
+					},
+				},
+				Payload: map[string]*pb.Value{
+					"userId":          {Kind: &pb.Value_StringValue{StringValue: userID}},
+					"projectId":       {Kind: &pb.Value_StringValue{StringValue: projectId}},
+					"originalMessage": {Kind: &pb.Value_StringValue{StringValue: originalMsg}},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("qdrant upsert: %w", err)
+	}
+	return nil
+}
+
+func (vt *VectorTools) EnsureCollection(ctx context.Context) error {
+	vectorSize := uint64(384)
+	err := vt.conn.CreateCollection(context.Background(), &qdrant.CreateCollection{
+		CollectionName: collectionName,
+		VectorsConfig: qdrant.NewVectorsConfig(&qdrant.VectorParams{
+			Size:     vectorSize,
+			Distance: qdrant.Distance_Cosine,
+		}),
+	})
+
+	if err != nil {
+		log.Println("Failed to create or collection already exist: ", err)
+	}
+	// Qdrant returns an error if the collection already exists — ignore it.
+	// A production version should check the error code specifically.
+	return nil
 }
 
 // SearchVectorDatabase is a stub returning an empty result set.
