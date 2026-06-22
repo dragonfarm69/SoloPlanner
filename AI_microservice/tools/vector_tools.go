@@ -123,6 +123,7 @@ func (vt *VectorTools) EnsureCollection(ctx context.Context) error {
 
 // SearchVectorDatabase is a stub returning an empty result set.
 // Replace this implementation when a vector store is configured.
-func (vt *VectorTools) SearchVectorDatabase(_ string) (string, error) {
+// sessionID is accepted to satisfy ToolFunc but is unused here.
+func (vt *VectorTools) SearchVectorDatabase(_, args string) (string, error) {
 	return `{"results":[],"note":"Vector search is not yet configured for this deployment. Add pgvector or a similar store to the Docker Compose stack and implement this function."}`, nil
 }

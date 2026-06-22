@@ -63,6 +63,14 @@ func main() {
 	log.Printf("  %-14s %s  (model: %s)", "Ollama:", cfg.OllamaHost, cfg.OllamaModel)
 	log.Printf("  %-14s %s", "Java backend:", cfg.JavaBackendURL)
 
+	// var sharedHTTPClient = &http.Client{Timeout: 15 * time.Second}
+	// resp, err := sharedHTTPClient.Get("http")
+	// if err != nil {
+	// 	return "", fmt.Errorf("GET %s: %w", url, err)
+	// }
+	// defer resp.Body.Close()
+	// return readResponseBody(resp)
+
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("FATAL: server exited: %v", err)
 	}

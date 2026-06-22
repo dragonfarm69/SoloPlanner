@@ -11,11 +11,17 @@ import helper.project.planner_helper.DTO.ProjectColumnRequest;
 import helper.project.planner_helper.DTO.ProjectRequestRecord;
 import helper.project.planner_helper.DTO.ProjectResponseRecord;
 import helper.project.planner_helper.DTO.UserProjectResponse;
+import helper.project.planner_helper.DTO.Blueprint.ColumnSummary;
+import helper.project.planner_helper.DTO.Blueprint.PrioritySummary;
+import helper.project.planner_helper.DTO.Blueprint.TagSummary;
+import helper.project.planner_helper.DTO.Blueprint.TaskCreationBlueprint;
+import helper.project.planner_helper.Types.Priority;
 import helper.project.planner_helper.DTO.Events.ColumnResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Repository.ProjectRepository;
+import helper.project.planner_helper.Repository.TagRepository;
 import helper.project.planner_helper.Repository.TaskColumnRepository;
 import helper.project.planner_helper.Repository.UserRepository;
 
@@ -24,13 +30,15 @@ public class ProjectService {
     private final ProjectRepository projectRepository; // final to make sure it is immutable
     private final UserRepository userRepository;
     private final TaskColumnRepository taskColumnRepository;
+    private final TagRepository tagRepository;
 
     // constructor
     public ProjectService(ProjectRepository projectRepository, UserRepository userRepository,
-            TaskColumnRepository taskColumnRepository) {
+            TaskColumnRepository taskColumnRepository, TagRepository tagRepository) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.taskColumnRepository = taskColumnRepository;
+        this.tagRepository = tagRepository;
     }
 
     public ProjectEntity findProject(UUID projecUuid) {
@@ -145,5 +153,34 @@ public class ProjectService {
 
         ProjectBoardResponse payload = EntityMapper.mapToProjectBoardResponse(project);
         return payload;
+    }
+
+    public TaskCreationBlueprint constructTaskCreationBlueprint(String projectId) {
+        UUID projectUUID = UUID.fromString(projectId);
+
+        ProjectEntity project = this.projectRepository.findById(projectUUID)
+                .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));
+
+        List<ColumnSummary> columnOptions = project.getColumns() != null
+                ? project.getColumns().stream()
+                        .map(col -> new ColumnSummary(col.getId().toString(), col.getName(), col.getColor()))
+                        .toList()
+                : List.of();
+
+        List<TagSummary> tagOptions = this.tagRepository.findByProjectId(projectUUID).stream()
+                .map(tag -> new TagSummary(tag.getId().toString(), tag.getName(), tag.getColor()))
+                .toList();
+
+        List<PrioritySummary> priorityOptions = java.util.Arrays.stream(Priority.values())
+                .map(p -> new PrioritySummary(p.name()))
+                .toList();
+
+        return new TaskCreationBlueprint(
+                "Task Title Example",
+                "A detailed description of the task requirements and steps.",
+                tagOptions,
+                columnOptions,
+                priorityOptions,
+                java.time.Instant.now().toString());
     }
 }

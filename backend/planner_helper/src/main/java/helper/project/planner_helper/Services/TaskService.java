@@ -86,6 +86,7 @@ public class TaskService {
         EventPayload payload = new EventPayload.TaskCreatedEvent(response);
 
         String destination = "/topic/projects/" + projectId;
+        System.out.println("SENDING TO " + destination);
         this.mesageTemplate.convertAndSend(destination, payload);
 
         return createdTask;

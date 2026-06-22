@@ -21,7 +21,7 @@ const maxIterations = 6
 // baseSystemPrompt is the identity and behaviour contract given to Gemma at
 // the start of every fresh session. It is extended at runtime with user/project
 // context in buildSystemPrompt.
-const baseSystemPrompt = `You are a project management assistant. 
+const baseSystemPrompt = `You are a project management assistant integrated directly inside a user's current project view session. 
 Review the user's message. If you require extra data to satisfy the user, you must execute one of your tools. 
 If no tool execution is required or possible given the current context, you MUST provide a natural language response explaining what you need or welcoming the user. Never return an empty message.
 
@@ -33,9 +33,16 @@ Capabilities:
 - You do not have access to a Python interpreter or any internal 'google:tool_code' tools. 
 - You are strictly forbidden from writing code blocks or raw script commands to execute tasks. 
 
+Data & ID Constraints (CRITICAL):
+- You operate within the context of the active project and active user session. 
+- All Database IDs, Project IDs, and User IDs are handled automatically by the backend system.
+- You do not have access to raw IDs, and you are STRICTLY FORBIDDEN from asking the user for a Project ID, User ID, or Database UUID. 
+- If a tool requires no parameters from the user (like getting a blueprint), execute it immediately without asking for context.
+
 Behaviour rules:
 - Always use the available tools to get live data before answering questions about projects or tasks.
 - Never invent project names, task titles, or IDs. If you don't have the data, fetch it first.
+- COLUMN SELECTION: If the user does not specify which column a task belongs to, DO NOT ask the user for clarification. Instead, call "get_project_task_blueprint", look at the available columns, and automatically select the default column to place the task in.
 - When creating a task or column, confirm the details with the user before calling create_task, unless they explicitly asked you to create one immediately.
 - Keep responses concise, friendly, and focused on the project management context.`
 
@@ -105,6 +112,10 @@ func New(cfg *config.Config, history *ConversationStore, toolReg *tools.Registry
 // responsible for draining tokenCh concurrently and must NOT close it — Run
 // will return when it is done.
 func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- string) error {
+	// Push the active user/project identity into all registered tools so they
+	// can inject it automatically without requiring the model to supply it.
+	o.tools.SetSessionContext(req.SessionID, req.UserID, req.ProjectID)
+
 	messages := o.buildInitialMessages(req)
 	toolDefs := o.tools.Definitions()
 
@@ -160,7 +171,7 @@ func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- s
 
 			// Execute every tool Gemma requested and feed results back.
 			for _, tc := range choice.ToolCalls {
-				result := o.executeTool(tc)
+				result := o.executeTool(req.SessionID, tc)
 				log.Printf("[orchestrator] session=%s tool=%s result_bytes=%d",
 					req.SessionID, tc.FunctionCall.Name, len(result))
 
@@ -283,11 +294,13 @@ func buildToolResultMessage(tc llms.ToolCall, result string) llms.MessageContent
 }
 
 // executeTool calls the registry and returns a JSON-safe result string.
+// sessionID is forwarded so tools can look up their stored session context
+// and inject user/project IDs that the model did not supply.
 // On failure it returns a JSON error object instead of propagating the error,
 // so Gemma can reason about the failure and explain it to the user gracefully.
-func (o *Orchestrator) executeTool(tc llms.ToolCall) string {
+func (o *Orchestrator) executeTool(sessionID string, tc llms.ToolCall) string {
 	log.Println("CALLING ", tc.FunctionCall.Name)
-	result, err := o.tools.Execute(tc.FunctionCall.Name, tc.FunctionCall.Arguments)
+	result, err := o.tools.Execute(sessionID, tc.FunctionCall.Name, tc.FunctionCall.Arguments)
 	if err != nil {
 		log.Printf("[orchestrator] tool %s failed: %v", tc.FunctionCall.Name, err)
 		return fmt.Sprintf(`{"error":%q}`, err.Error())

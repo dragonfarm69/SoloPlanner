@@ -53,11 +53,11 @@ public class TagEntity {
         this.color = color;
     }
 
-    public ProjectEntity getProjectId() {
+    public ProjectEntity getProject() {
         return project;
     }
 
-    public void setProjectId(ProjectEntity project) {
+    public void setProject(ProjectEntity project) {
         this.project = project;
     }
 }
