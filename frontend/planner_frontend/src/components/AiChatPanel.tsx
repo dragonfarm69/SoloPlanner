@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import { AiChatProvider } from "../context/AiChatContext";
+import { useAiChat } from "../hooks/useAiChat";
+import type { AiSocketMessage } from "../services/AiChatService";
 import "./AiChatPanel.css";
 
 // ─── Types ───────────────────────────────
+
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -17,13 +21,12 @@ interface AiChatPanelProps {
 }
 
 // ─── Constants ───────────────────────────
+
 const SUGGESTIONS = [
   "Summarize my tasks",
   "What should I prioritize?",
   "Help me plan my day",
 ];
-
-const MOCK_AI_REPLY = "I'm not connected yet — API integration coming soon!";
 
 // ─── Helpers ─────────────────────────────
 
@@ -35,21 +38,80 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// ─── Component ───────────────────────────
+// ─── Outer shell ─────────────────────────
+// Provides the AiChatContext so AiChatPanelContent can call useAiChat().
 
 export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
+  return (
+    <AiChatProvider isOpen={isOpen}>
+      <AiChatPanelContent isOpen={isOpen} onClose={onClose} />
+    </AiChatProvider>
+  );
+}
+
+// ─── Inner component ─────────────────────
+// Consumes AiChatContext via useAiChat(). All UI state and handlers live here.
+
+function AiChatPanelContent({ isOpen, onClose }: AiChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<
-    "connecting" | "connected" | "disconnected"
-  >("connecting");
 
   const { projectId } = useParams<{ projectId: string }>();
+  const { send, status, subscribe } = useAiChat();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const socketRef = useRef<WebSocket | null>(null);
+
+  // ─── Subscribe to incoming AI messages ───
+  useEffect(() => {
+    return subscribe((data: AiSocketMessage) => {
+      if (data.type === "token") {
+        setIsTyping(false);
+        setMessages((prev) => {
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg && lastMsg.role === "assistant") {
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMsg, content: lastMsg.content + data.chunk },
+            ];
+          }
+          return [
+            ...prev,
+            {
+              id: generateId(),
+              role: "assistant",
+              content: data.chunk ?? "",
+              timestamp: new Date(),
+            },
+          ];
+        });
+      } else if (data.type === "done") {
+        setIsTyping(false);
+        setMessages((prev) => {
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg && lastMsg.role === "assistant") {
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMsg, content: data.fullText ?? "" },
+            ];
+          }
+          return prev;
+        });
+      } else if (data.type === "error") {
+        setIsTyping(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: generateId(),
+            role: "assistant",
+            content: `Error: ${data.message || "Something went wrong."}`,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    });
+  }, [subscribe]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -75,6 +137,7 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
   }, [onClose]);
 
   // ─── Send Message ────────────────────
+
   const sendMessage = useCallback(
     (content: string) => {
       const trimmed = content.trim();
@@ -93,17 +156,13 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
 
       const userId = localStorage.getItem("user_id") || "anonymous";
 
-      if (
-        socketRef.current &&
-        socketRef.current.readyState === WebSocket.OPEN
-      ) {
-        const payload = {
+      if (status === "connected") {
+        send({
           type: "chat",
           userId,
           projectId: projectId || "",
           message: trimmed,
-        };
-        socketRef.current.send(JSON.stringify(payload));
+        });
       } else {
         // Fallback message if socket connection is down
         setTimeout(() => {
@@ -121,10 +180,11 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
         }, 500);
       }
     },
-    [projectId],
+    [projectId, send, status],
   );
 
   // ─── Input Handlers ──────────────────
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -146,101 +206,8 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
 
   const hasMessages = messages.length > 0;
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let socket: WebSocket;
-    let reconnectTimeout: ReturnType<typeof setTimeout>;
-
-    function connect() {
-      setConnectionStatus("connecting");
-      socket = new WebSocket("ws://localhost:8090/ws");
-      socketRef.current = socket;
-
-      socket.onopen = () => {
-        console.log("[ws] AI connection established");
-        setConnectionStatus("connected");
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.type === "token") {
-            setIsTyping(false);
-            setMessages((prev) => {
-              const lastMsg = prev[prev.length - 1];
-              if (lastMsg && lastMsg.role === "assistant") {
-                return [
-                  ...prev.slice(0, -1),
-                  { ...lastMsg, content: lastMsg.content + data.chunk },
-                ];
-              } else {
-                return [
-                  ...prev,
-                  {
-                    id: generateId(),
-                    role: "assistant",
-                    content: data.chunk,
-                    timestamp: new Date(),
-                  },
-                ];
-              }
-            });
-          } else if (data.type === "done") {
-            setIsTyping(false);
-            setMessages((prev) => {
-              const lastMsg = prev[prev.length - 1];
-              if (lastMsg && lastMsg.role === "assistant") {
-                return [
-                  ...prev.slice(0, -1),
-                  { ...lastMsg, content: data.fullText },
-                ];
-              }
-              return prev;
-            });
-          } else if (data.type === "error") {
-            setIsTyping(false);
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: generateId(),
-                role: "assistant",
-                content: `Error: ${data.message || "Something went wrong."}`,
-                timestamp: new Date(),
-              },
-            ]);
-          }
-        } catch (err) {
-          console.error("Failed to parse websocket message", err);
-        }
-      };
-
-      socket.onerror = (error) => {
-        console.error("[ws] AI WebSocket error:", error);
-      };
-
-      socket.onclose = () => {
-        console.log("[ws] AI connection closed");
-        setConnectionStatus("disconnected");
-        reconnectTimeout = setTimeout(() => {
-          if (isOpen) connect();
-        }, 3000);
-      };
-    }
-
-    connect();
-
-    return () => {
-      if (socket) {
-        socket.onclose = null;
-        socket.close();
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-    };
-  }, [isOpen]);
+  // Derive a display string from the connection status coming from context.
+  const connectionStatus = status;
 
   return (
     <>
@@ -307,9 +274,15 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
                   <div className="chat-message-bubble">
                     <ReactMarkdown
                       components={{
-                        p: ({ children }) => <p className="chat-markdown-p">{children}</p>,
+                        p: ({ children }) => (
+                          <p className="chat-markdown-p">{children}</p>
+                        ),
                         a: ({ href, children }) => (
-                          <a href={href} target="_blank" rel="noopener noreferrer">
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             {children}
                           </a>
                         ),
@@ -322,17 +295,32 @@ export default function AiChatPanel({ isOpen, onClose }: AiChatPanelProps) {
                               </code>
                             </pre>
                           ) : (
-                            <code className="chat-markdown-inline-code" {...props}>
+                            <code
+                              className="chat-markdown-inline-code"
+                              {...props}
+                            >
                               {children}
                             </code>
                           );
                         },
-                        ul: ({ children }) => <ul className="chat-markdown-ul">{children}</ul>,
-                        ol: ({ children }) => <ol className="chat-markdown-ol">{children}</ol>,
-                        li: ({ children }) => <li className="chat-markdown-li">{children}</li>,
-                        h1: ({ children }) => <h1 className="chat-markdown-h1">{children}</h1>,
-                        h2: ({ children }) => <h2 className="chat-markdown-h2">{children}</h2>,
-                        h3: ({ children }) => <h3 className="chat-markdown-h3">{children}</h3>,
+                        ul: ({ children }) => (
+                          <ul className="chat-markdown-ul">{children}</ul>
+                        ),
+                        ol: ({ children }) => (
+                          <ol className="chat-markdown-ol">{children}</ol>
+                        ),
+                        li: ({ children }) => (
+                          <li className="chat-markdown-li">{children}</li>
+                        ),
+                        h1: ({ children }) => (
+                          <h1 className="chat-markdown-h1">{children}</h1>
+                        ),
+                        h2: ({ children }) => (
+                          <h2 className="chat-markdown-h2">{children}</h2>
+                        ),
+                        h3: ({ children }) => (
+                          <h3 className="chat-markdown-h3">{children}</h3>
+                        ),
                       }}
                     >
                       {msg.content}

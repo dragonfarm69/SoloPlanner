@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useBoard } from "../hooks/useBoard";
+import { StompProvider } from "../context/StompContext";
+import { useStompMessages } from "../hooks/useStompMessages";
 import Sidebar from "../components/Sidebar";
 import BoardHeader from "../components/BoardHeader";
 import KanbanBoard from "./Kanban/KanbanBoard";
@@ -181,6 +183,8 @@ export default function MainPage() {
   );
 
   const { projectId } = useParams<{ projectId: string }>();
+
+  // ─── Fetch initial board data ───────────────
   useEffect(() => {
     async function fetchTasks() {
       try {
@@ -220,79 +224,93 @@ export default function MainPage() {
       }
     }
     fetchTasks();
+  }, [projectId, dispatch]);
 
-    // establish WebSocket Connection
-    if (!projectId) return;
+  // ─── Real-time board events via STOMP ───────
+  // The WebSocket connection is owned by <StompProvider> below.
+  // This hook registers a listener that dispatches board actions when
+  // another user creates, edits, deletes, or moves a task.
+  const handleStompMessage = useCallback(
+    (raw: unknown) => {
+      const data = raw as {
+        type: string;
+        task?: any;
+        taskId?: string;
+        columnId?: string;
+        newOrder?: string;
+      };
 
-    const ws = new WebSocket("ws://localhost:8081/ws-connect/websocket");
+      console.log("Received broadcast event:", data);
 
-    ws.onopen = () => {
-      console.log("WebSocket connection established. Sending CONNECT frame...");
-      // Send STOMP CONNECT frame
-      const connectFrame =
-        "CONNECT\naccept-version:1.2,1.1,1.0\nheart-beat:10000,10000\n\n\u0000";
-      ws.send(connectFrame);
-    };
+      switch (data.type) {
+        // Another user created a task — add it to local state.
+        // Note: ADD_TASK generates a new local id. The server id
+        // (data.task.id) is stored in a comment for traceability;
+        // local state syncs fully on next page load.
+        case "TASK_CREATED":
+          dispatch({
+            type: "ADD_TASK",
+            payload: {
+              title: data.task.title,
+              description: data.task.description ?? "",
+              priority: (data.task.priority?.toLowerCase() ?? "low") as Priority,
+              labels: [],
+              columnId: data.task.columnId,
+              deadline: data.task.deadline
+                ? data.task.deadline.split("T")[0]
+                : undefined,
+            },
+          });
+          break;
 
-    ws.onmessage = (event) => {
-      const messageText = event.data;
+        // Another user deleted a task — remove it from local state.
+        case "TASK_DELETED":
+          dispatch({
+            type: "DELETE_TASK",
+            payload: { id: data.task.id },
+          });
+          break;
 
-      // Check if this is a CONNECTED frame
-      if (messageText.startsWith("CONNECTED")) {
-        console.log("STOMP Session Connected! Subscribing to topic...");
-        // Send STOMP SUBSCRIBE frame
-        const subscribeFrame = `SUBSCRIBE\nid:sub-0\ndestination:/topic/projects/${projectId}\n\n\u0000`;
-        ws.send(subscribeFrame);
+        // Another user edited a task — patch the existing task in state.
+        case "TASK_EDITED":
+          dispatch({
+            type: "UPDATE_TASK",
+            payload: {
+              id: data.task.id,
+              title: data.task.title,
+              description: data.task.description ?? "",
+              priority: (data.task.priority?.toLowerCase() ?? "low") as Priority,
+              deadline: data.task.deadline
+                ? data.task.deadline.split("T")[0]
+                : undefined,
+            },
+          });
+          break;
+
+        // Another user moved a task — update its column and order.
+        case "TASK_MOVED":
+          dispatch({
+            type: "MOVE_TASK",
+            payload: {
+              taskId: data.taskId!,
+              toColumnId: data.columnId!,
+              newOrder: parseInt(data.newOrder!, 36),
+            },
+          });
+          break;
+
+        default:
+          console.warn("Unhandled broadcast event type:", data.type, data);
+          break;
       }
-      // Check if this is a MESSAGE frame
-      else if (messageText.startsWith("MESSAGE")) {
-        // Parse the body out of the STOMP message
-        // STOMP body starts after a double newline (\n\n) and ends with the null character (\u0000)
-        const parts = messageText.split("\n\n");
-        if (parts.length > 1) {
-          const body = parts[1].replace(/\u0000/g, "").trim();
-          try {
-            const data = JSON.parse(body);
-            console.log("Received task moved broadcast event:", data);
+    },
+    [dispatch],
+  );
 
-            // payload: { taskId, toColumnId: column.id, toIndex },
-
-            // Dispatch/update state when another user moves a task
-            dispatch({
-              type: "MOVE_TASK",
-              payload: {
-                taskId: data.taskId,
-                toColumnId: data.columnId,
-                newOrder: parseInt(data.newOrder, 36),
-              },
-            });
-          } catch (e) {
-            console.error("Failed to parse STOMP message body:", e);
-          }
-        }
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket Error:", error);
-    };
-
-    ws.onclose = (event) => {
-      console.log("WebSocket connection closed:", event);
-    };
-
-    // Cleanup connection on unmount or when projectId changes
-    return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        // Send STOMP DISCONNECT frame before closing
-        ws.send("DISCONNECT\n\n\u0000");
-        ws.close();
-      }
-    };
-  }, [projectId]);
+  useStompMessages(handleStompMessage);
 
   return (
-    <>
+    <StompProvider projectId={projectId}>
       <Sidebar
         totalTasks={board.tasks.length}
         completedTasks={completedTasks}
@@ -354,6 +372,6 @@ export default function MainPage() {
       {isChatOpen && (
         <AiChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
-    </>
+    </StompProvider>
   );
 }

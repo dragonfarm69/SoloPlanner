@@ -1,8 +1,11 @@
 package helper.project.planner_helper.DTO;
 
-public record ProjectColumnRequest(String name, String color, int position) {
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record ProjectColumnRequest(String name, String color) {
     public ProjectColumnRequest() {
-        this("", "#444", 0);
+        this("", "#444");
     }
 
     public ProjectColumnRequest {

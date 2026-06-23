@@ -5,12 +5,12 @@ import java.util.List;
 
 import helper.project.planner_helper.Types.Priority;
 
-public record TaskCreationBlueprint(String title, String description, List<TagSummary> tagOptions,
+public record ProjectSummary(String title, String description, List<TagSummary> tagOptions,
         List<ColumnSummary> columnOptions,
         List<PrioritySummary> priorityOptions,
         String currentDateTime) {
 
-    public TaskCreationBlueprint() {
+    public ProjectSummary() {
         this(
                 "Task Title Example",
                 "A detailed description of the task requirements and steps.",
@@ -20,4 +20,3 @@ public record TaskCreationBlueprint(String title, String description, List<TagSu
                 java.time.Instant.now().toString());
     }
 }
-

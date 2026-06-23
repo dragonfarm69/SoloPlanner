@@ -76,6 +76,7 @@ func (pt *ProjectTools) resolveIDs(sessionID, argsUserID, argsProjectID string) 
 func (pt *ProjectTools) RegisterAll(r *Registry) {
 	r.Register(pt.getProjectTasksDef(), pt.GetProjectTasks)
 	r.Register(pt.createTaskDef(), pt.CreateTask)
+	// r.Register(pt.createColumnDef(), pt.CreateColumn)
 	r.Register(pt.getProjectTaskBlueprintDef(), pt.GetProjectTaskBlueprint)
 	r.RegisterContextSetter(pt)
 }
@@ -116,6 +117,34 @@ func (pt *ProjectTools) getProjectTaskBlueprintDef() llms.Tool {
 					},
 				},
 				"required": []string{},
+			},
+		},
+	}
+}
+
+func (pt *ProjectTools) createColumnDef() llms.Tool {
+	return llms.Tool{
+		Type: "function",
+		Function: &llms.FunctionDefinition{
+			Name:        "create_task",
+			Description: "Creates a new task inside a project column and assigns it to the current user. The projectId and userId are injected automatically by the server; do not ask the user for them.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"projectId": map[string]any{
+						"type":        "string",
+						"description": "UUID of the project. Omit — the server injects this automatically from the active session.",
+					},
+					"title": map[string]any{
+						"type":        "string",
+						"description": "Title of the new column.",
+					},
+					"userId": map[string]any{
+						"type":        "string",
+						"description": "UUID of the user the task is assigned to. Omit — the server injects this automatically from the active session.",
+					},
+				},
+				"required": []string{"title"},
 			},
 		},
 	}
@@ -277,6 +306,37 @@ func (pt *ProjectTools) CreateTask(sessionID, args string) (string, error) {
 	}
 
 	url := fmt.Sprintf("%s/projects/%s/%s/tasks", pt.baseURL, projectID, params.ColumnID)
+	return doPost(url, reqBody)
+}
+
+func (pt *ProjectTools) CreateColumn(sessionID, args string) (string, error) {
+	var params struct {
+		Title     string `json:"name"`
+		ProjectID string `json:"projectId"`
+		UserID    string `json:"userId"`
+	}
+	if err := json.Unmarshal([]byte(args), &params); err != nil {
+		return "", fmt.Errorf("create_task: parse args: %w", err)
+	}
+
+	// Resolve projectId and userId from args, falling back to the stored session context.
+	userID, projectID := pt.resolveIDs(sessionID, params.UserID, params.ProjectID)
+	if projectID == "" {
+		return "", fmt.Errorf("create_task: projectId is required but was not provided by the model or the active session")
+	}
+	if userID == "" {
+		return "", fmt.Errorf("create_task: userId is required but was not provided by the model or the active session")
+	}
+
+	// Build the request body that Java's ProjectTaskRequest expects.
+	reqBody, err := json.Marshal(map[string]any{
+		"name": params.Title,
+	})
+	if err != nil {
+		return "", fmt.Errorf("create_task: marshal body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/projects/%s/columns", pt.baseURL, projectID)
 	return doPost(url, reqBody)
 }
 

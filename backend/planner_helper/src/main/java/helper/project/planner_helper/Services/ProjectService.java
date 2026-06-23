@@ -14,7 +14,7 @@ import helper.project.planner_helper.DTO.UserProjectResponse;
 import helper.project.planner_helper.DTO.Blueprint.ColumnSummary;
 import helper.project.planner_helper.DTO.Blueprint.PrioritySummary;
 import helper.project.planner_helper.DTO.Blueprint.TagSummary;
-import helper.project.planner_helper.DTO.Blueprint.TaskCreationBlueprint;
+import helper.project.planner_helper.DTO.Blueprint.ProjectSummary;
 import helper.project.planner_helper.Types.Priority;
 import helper.project.planner_helper.DTO.Events.ColumnResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
@@ -155,7 +155,7 @@ public class ProjectService {
         return payload;
     }
 
-    public TaskCreationBlueprint constructTaskCreationBlueprint(String projectId) {
+    public ProjectSummary constructTaskCreationBlueprint(String projectId) {
         UUID projectUUID = UUID.fromString(projectId);
 
         ProjectEntity project = this.projectRepository.findById(projectUUID)
@@ -175,7 +175,7 @@ public class ProjectService {
                 .map(p -> new PrioritySummary(p.name()))
                 .toList();
 
-        return new TaskCreationBlueprint(
+        return new ProjectSummary(
                 "Task Title Example",
                 "A detailed description of the task requirements and steps.",
                 tagOptions,
