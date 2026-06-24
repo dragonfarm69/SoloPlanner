@@ -60,8 +60,12 @@ public class TaskEntity {
     private Instant deadline;
     private Instant lastEdited;
 
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Priority priority;
+
+    @Column(nullable = false)
+    private boolean isArchived;
 
     //
     @PrePersist
@@ -169,5 +173,13 @@ public class TaskEntity {
 
     public void setOrder(String order) {
         this.order = order;
+    }
+
+    public boolean getIsArchived() {
+        return isArchived;
+    }
+
+    public void setIsArchived(boolean isArchived) {
+        this.isArchived = isArchived;
     }
 }

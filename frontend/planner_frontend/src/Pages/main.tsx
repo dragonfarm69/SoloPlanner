@@ -158,18 +158,6 @@ export default function MainPage() {
           console.error("Error when trying to add task: ", e);
           return;
         }
-
-        dispatch({
-          type: "ADD_TASK",
-          payload: {
-            title: data.title,
-            description: data.description,
-            priority: data.priority,
-            labels: data.labels,
-            columnId: data.columnId,
-            deadline: data.deadline,
-          },
-        });
       }
       handleCloseModal();
     },
@@ -214,11 +202,13 @@ export default function MainPage() {
             description: t.description ?? "",
             priority: (t.priority?.toLowerCase() ?? "low") as Priority, // "HIGH" → "high"
             labels: [], // not implemented yet
+            username: t.username,
             columnId: col.id, // inject from parent column
             order: t.order, // order of the task in column
             deadline: t.deadline ? t.deadline.split("T")[0] : "",
           })),
         );
+        console.log("loaded: ", data);
         dispatch({ type: "LOAD_BOARD", payload: { columns, tasks } });
       } catch (error) {
         console.log("error when fetching task: ", error);
@@ -256,6 +246,7 @@ export default function MainPage() {
               description: data.task.description ?? "",
               priority: (data.task.priority?.toLowerCase() ??
                 "low") as Priority,
+              username: data.task.username,
               labels: [],
               columnId: data.task.columnId,
               deadline: data.task.deadline
@@ -280,6 +271,7 @@ export default function MainPage() {
             payload: {
               id: data.task.id,
               title: data.task.title,
+              username: data.task.username,
               description: data.task.description ?? "",
               priority: (data.task.priority?.toLowerCase() ??
                 "low") as Priority,

@@ -16,10 +16,16 @@ interface TaskModalProps {
 export interface TaskFormData {
   title: string;
   description: string;
+  userId: string;
   priority: Priority;
   labels: string[];
   columnId: string;
   deadline: string; // "" means no deadline chosen
+}
+
+interface UserSummaryData {
+  userId: string;
+  username: string;
 }
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
@@ -54,6 +60,9 @@ export default function TaskModal({
   const [deadline, setDeadline] = useState(task?.deadline ?? "");
   const [labelInput, setLabelInput] = useState("");
 
+  const [users, setUsers] = useState<UserSummaryData[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+
   const titleRef = useRef<HTMLInputElement>(null);
   const isEditing = task !== null;
 
@@ -77,6 +86,7 @@ export default function TaskModal({
     onSave({
       title: title.trim(),
       description: description.trim(),
+      userId: selectedUserId,
       priority,
       labels,
       columnId,
@@ -205,6 +215,48 @@ export default function TaskModal({
                 min={today}
                 onChange={(e) => setDeadline(e.target.value)}
               />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="task-deadline">
+                Assigned to
+              </label>
+              <select
+                onClick={async () => {
+                  if (users.length > 0) {
+                    console.log("users isn't null: ", users);
+                    return;
+                  }
+
+                  //fetch all users
+                  try {
+                    // const projectId = ;
+                    const url = `http://localhost:8081/projects/${projectId}/users`;
+                    console.log("calling: ", url);
+
+                    const response = await fetch(url, {
+                      method: "GET",
+                      credentials: "include",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                    });
+
+                    const data = await response.json();
+                    console.log(data);
+                    setUsers(data);
+                    console.log(users);
+                  } catch (e) {
+                    console.error("Error when fetching users: ", e);
+                    return;
+                  }
+                }}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+              >
+                {users.map((user) => (
+                  <option value={user.userId}>{user.username}</option>
+                ))}
+              </select>
             </div>
           </div>
 

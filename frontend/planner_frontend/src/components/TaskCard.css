@@ -114,6 +114,17 @@
   color: var(--text-tertiary);
 }
 
+.task-card-username {
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  color: var(--text-accent);
+  background: var(--accent-bg);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+}
+
 .task-card-actions {
   display: flex;
   gap: var(--space-1);

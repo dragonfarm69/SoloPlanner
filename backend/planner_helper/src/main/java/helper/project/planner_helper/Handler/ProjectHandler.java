@@ -23,6 +23,7 @@ import helper.project.planner_helper.DTO.ProjectColumnRequest;
 import helper.project.planner_helper.DTO.ProjectRequestRecord;
 import helper.project.planner_helper.DTO.ProjectResponseRecord;
 import helper.project.planner_helper.DTO.ProjectTaskRequest;
+import helper.project.planner_helper.DTO.ProjectUserSummary;
 import helper.project.planner_helper.DTO.TaskEditRequest;
 import helper.project.planner_helper.DTO.TaskPositionRequest;
 import helper.project.planner_helper.DTO.UserProjectResponse;
@@ -72,6 +73,12 @@ public class ProjectHandler {
         this.projectService.deleteColumn(columnUUID);
     }
 
+    // get all the users in a project
+    @GetMapping("/{project_id}/users")
+    public List<ProjectUserSummary> getUsers(@PathVariable("project_id") String projectId) {
+        return this.projectService.getUsersInProject(projectId);
+    }
+
     @GetMapping("/{project_id}/{column_id}/{task_id}")
     public List<TaskEntity> getTaskInformation(@PathVariable("project_id") UUID projectId,
             @PathVariable("column_id") String columnId, @PathVariable("task_id") String taskId) {
@@ -86,17 +93,13 @@ public class ProjectHandler {
     }
 
     @GetMapping("/{project_id}/tags")
-    public TaskResponse getTag(@PathVariable("project_id") String projectId,
-            @PathVariable("column_id") String columnId, @Validated @RequestBody ProjectTaskRequest request) {
-        TaskEntity task = this.taskService.createTask(request, projectId, columnId);
-        return EntityMapper.mapToTaskResponse(task);
+    public void getTag(@PathVariable("project_id") String projectId,
+            @Validated @RequestBody ProjectTaskRequest request) {
     }
 
     @PostMapping("/{project_id}/tags")
-    public TaskResponse addTag(@PathVariable("project_id") String projectId,
-            @PathVariable("column_id") String columnId, @Validated @RequestBody ProjectTaskRequest request) {
-        TaskEntity task = this.taskService.createTask(request, projectId, columnId);
-        return EntityMapper.mapToTaskResponse(task);
+    public void addTag(@PathVariable("project_id") String projectId,
+            @Validated @RequestBody ProjectTaskRequest request) {
     }
 
     @PostMapping

@@ -4,8 +4,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import helper.project.planner_helper.Types.Category;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -35,11 +38,15 @@ public class TaskColumn {
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
 
-    @OneToMany(mappedBy = "column")
+    @OneToMany(mappedBy = "column", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     private List<TaskEntity> tasks;
 
     @Column(nullable = false)
     private Instant createdDate;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Category category;
 
     @PrePersist
     protected void onCreate() {
@@ -101,5 +108,13 @@ public class TaskColumn {
 
     public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
     }
 }

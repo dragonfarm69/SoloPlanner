@@ -7,6 +7,7 @@ export interface Task {
   priority: Priority;
   labels: string[];
   columnId: string;
+  username: string;
   order: string;
   createdAt: number;
   updatedAt: number;

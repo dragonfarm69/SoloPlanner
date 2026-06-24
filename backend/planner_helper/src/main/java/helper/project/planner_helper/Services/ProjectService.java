@@ -11,6 +11,7 @@ import helper.project.planner_helper.DTO.ProjectBoardResponse;
 import helper.project.planner_helper.DTO.ProjectColumnRequest;
 import helper.project.planner_helper.DTO.ProjectRequestRecord;
 import helper.project.planner_helper.DTO.ProjectResponseRecord;
+import helper.project.planner_helper.DTO.ProjectUserSummary;
 import helper.project.planner_helper.DTO.UserProjectResponse;
 import helper.project.planner_helper.DTO.Blueprint.ColumnSummary;
 import helper.project.planner_helper.DTO.Blueprint.PrioritySummary;
@@ -112,6 +113,7 @@ public class ProjectService {
                 .orElseThrow(() -> new RuntimeException("Project not found" + projectId));
 
         column.setProject(project);
+        column.setCategory(request.category());
 
         TaskColumn latestColumn = this.taskColumnRepository.findLatestTaskColumnByProjectId(projectUUID).orElse(null);
         // first column
@@ -262,5 +264,18 @@ public class ProjectService {
                 columnOptions,
                 priorityOptions,
                 java.time.Instant.now().toString());
+    }
+
+    public List<ProjectUserSummary> getUsersInProject(String projectId) {
+        UUID projectUUID = UUID.fromString(projectId);
+        List<UserEntity> users = this.projectRepository.getUsersInProject(projectUUID);
+        List<ProjectUserSummary> response = new ArrayList<>();
+
+        for (UserEntity user : users) {
+            ProjectUserSummary summary = EntityMapper.mapToProjectUserSummary(user);
+            response.add(summary);
+        }
+
+        return response;
     }
 }

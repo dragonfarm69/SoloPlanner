@@ -39,6 +39,7 @@ export default function KanbanBoard({
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [newColumnColor, setNewColumnColor] = useState(COLUMN_COLORS[0]);
+  const [newColumnCategory, setNewColumnCategory] = useState("TODO");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -81,10 +82,15 @@ export default function KanbanBoard({
       // const projectId = ;
       const url = `http://localhost:8081/projects/${projectId}/columns`;
 
+      //temp safe guard
+      if (newColumnCategory == "") {
+        alert("Must select a category");
+      }
+
       const payload = {
         name: title,
         color: newColumnColor,
-        position: columns.length,
+        category: newColumnCategory,
       };
 
       const response = await fetch(url, {
@@ -144,6 +150,16 @@ export default function KanbanBoard({
             }}
             aria-label="New column name"
           />
+
+          <select
+            value={newColumnCategory}
+            onChange={(e) => setNewColumnCategory(e.target.value)}
+            className="add-column-form-select"
+          >
+            <option value="TODO">Todo</option>
+            <option value="IN_PROGRESS">In progress</option>
+            <option value="DONE">Done</option>
+          </select>
 
           <div className="add-column-color-row">
             <span className="add-column-color-label">Color:</span>

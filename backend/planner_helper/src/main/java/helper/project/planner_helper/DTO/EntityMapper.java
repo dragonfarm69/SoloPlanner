@@ -24,6 +24,7 @@ public class EntityMapper {
                 task.getPriority() != null ? task.getPriority().name() : null,
                 task.getOrder(),
                 task.getColumn().getId().toString(),
+                task.getUser().getUsername(),
                 task.getDeadline());
     }
 
@@ -127,5 +128,11 @@ public class EntityMapper {
                 tag.getId(),
                 tag.getName(),
                 tag.getColor());
+    }
+
+    public static ProjectUserSummary mapToProjectUserSummary(UserEntity user) {
+        return new ProjectUserSummary(
+                user.getId().toString(),
+                user.getUsername());
     }
 }

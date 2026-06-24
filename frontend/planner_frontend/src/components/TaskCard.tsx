@@ -38,7 +38,10 @@ export default function TaskCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
-  const [dragPreview, setDragPreview] = useState<{ title: string; priority: Priority } | null>(null);
+  const [dragPreview, setDragPreview] = useState<{
+    title: string;
+    priority: Priority;
+  } | null>(null);
 
   const priority = PRIORITY_CONFIG[task.priority];
 
@@ -171,6 +174,7 @@ export default function TaskCard({
 
         {/* Footer: Date + Actions */}
         <div className="task-card-footer">
+          <span className="task-card-username">@{task.username}</span>
           <span className="task-card-date">{task.deadline}</span>
           <div className="task-card-actions">
             <button
