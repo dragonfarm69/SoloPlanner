@@ -1,14 +1,27 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import { extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import {
+  draggable,
+  dropTargetForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
+import {
+  attachClosestEdge,
+  extractClosestEdge,
+} from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import type { Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import type { Task, Column } from "../../types";
 import type { BoardDispatch } from "../../hooks/useBoard";
-import TaskCard from "../../components/TaskCard";
+import ColumnHeader from "./ColumnHeader";
+import ColumnBody from "./ColumnBody";
+import ColumnFooter from "./ColumnFooter";
+import ColumnDropPreview from "./ColumnDropPreview";
 import "./KanbanColumn.css";
 
 interface KanbanColumnProps {
   projectId?: String;
   column: Column;
+  index: number;
+  allColumns: Column[];
   tasks: Task[];
   dispatch: BoardDispatch;
   onEditTask: (task: Task) => void;
@@ -18,16 +31,127 @@ interface KanbanColumnProps {
 export default function KanbanColumn({
   projectId,
   column,
+  index,
+  allColumns,
   tasks,
   dispatch,
   onEditTask,
   onAddTask,
 }: KanbanColumnProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
+  const columnRef = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isDraggingColumn, setIsDraggingColumn] = useState(false);
+  const [closestColumnEdge, setClosestColumnEdge] = useState<Edge | null>(null);
+  const [columnDragPreview, setColumnDragPreview] = useState<{
+    title: string;
+    color: string;
+  } | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(column.title);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // ─── Column Drag and Drop ────────────────
+  useEffect(() => {
+    const el = columnRef.current;
+    if (!el) return;
+
+    return combine(
+      draggable({
+        element: el,
+        getInitialData: () => ({
+          type: "column",
+          columnId: column.id,
+          title: column.title,
+          color: column.color,
+          index,
+        }),
+        onDragStart: () => setIsDraggingColumn(true),
+        onDrop: () => setIsDraggingColumn(false),
+      }),
+      dropTargetForElements({
+        element: el,
+        getData: ({ input, element }) => {
+          const data = {
+            type: "column",
+            columnId: column.id,
+            index,
+          };
+          return attachClosestEdge(data, {
+            input,
+            element,
+            allowedEdges: ["left", "right"],
+          });
+        },
+        canDrop: ({ source }) => {
+          return (
+            source.data.type === "column" && source.data.columnId !== column.id
+          );
+        },
+        onDragEnter: ({ self, source }) => {
+          setClosestColumnEdge(extractClosestEdge(self.data));
+          setColumnDragPreview({
+            title: source.data.title as string,
+            color: source.data.color as string,
+          });
+        },
+        onDrag: ({ self }) => {
+          const edge = extractClosestEdge(self.data);
+          setClosestColumnEdge((current) =>
+            current !== edge ? edge : current,
+          );
+        },
+        onDragLeave: () => {
+          setClosestColumnEdge(null);
+          setColumnDragPreview(null);
+        },
+        onDrop: async ({ source, self }) => {
+          setClosestColumnEdge(null);
+          setColumnDragPreview(null);
+
+          const sourceId = source.data.columnId as string;
+          const targetIndex = self.data.index as number;
+          const edge = extractClosestEdge(self.data);
+          const toIndex = edge === "right" ? targetIndex + 1 : targetIndex;
+
+          try {
+            // 1. Remove the dragged column from the current list
+            const otherColumns = allColumns.filter((c) => c.id !== sourceId);
+
+            // 2. Clamp the index so it doesn't exceed bounds
+            const clampedIndex = Math.min(toIndex, otherColumns.length);
+
+            // 3. Find the column before and after the new insertion spot
+            const prevColumn =
+              clampedIndex > 0 ? otherColumns[clampedIndex - 1] : null;
+            const nextColumn =
+              clampedIndex < otherColumns.length
+                ? otherColumns[clampedIndex]
+                : null;
+            const payload = {
+              prevColumnId: prevColumn ? prevColumn.id : null,
+              nextColumnId: nextColumn ? nextColumn.id : null,
+            };
+
+            const url = `http://localhost:8081/projects/${projectId}/${sourceId}/position`;
+            console.log("REQUESTIONG URL: ", url);
+            console.log("REQUESTING MOVING COLUMN: ", payload);
+            const response = await fetch(url, {
+              method: "PATCH",
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+            console.log("SERVER RETURNED: ", response.status);
+          } catch (e) {
+            console.error("Error when trying to update column position: ", e);
+          }
+        },
+      }),
+    );
+  }, [column.id, column.title, column.color, index, dispatch]);
 
   // ─── Drop Target ────────────────────────
   useEffect(() => {
@@ -52,13 +176,6 @@ export default function KanbanColumn({
           const closestEdge = extractClosestEdge(innerTarget.data);
           const toIndex =
             closestEdge === "bottom" ? targetIndex + 1 : targetIndex;
-
-          //Disable for now to test websocket
-          // dispatch({
-          //   type: "MOVE_TASK",
-          //   payload: { taskId, toColumnId: column.id, toIndex },
-          // });
-
           try {
             const otherTasks = tasks.filter((t) => t.id !== taskId);
             const clampedIndex = Math.min(toIndex, otherTasks.length);
@@ -96,12 +213,10 @@ export default function KanbanColumn({
             console.error("Error when trying to update task position: ", e);
           }
         } else {
-          // Dropped on the column body directly (empty area) — append at end
           // dispatch({
           //   type: "MOVE_TASK",
           //   payload: { taskId, toColumnId: column.id, newOrder: tasks.length },
           // });
-
           try {
             const payload = {
               columnId: column.id,
@@ -204,86 +319,40 @@ export default function KanbanColumn({
   );
 
   return (
-    <div className="kanban-column" id={`column-${column.id}`}>
-      {/* Header */}
+    <div className="kanban-column-wrapper" ref={columnRef}>
+      <ColumnDropPreview
+        preview={closestColumnEdge === "left" ? columnDragPreview : null}
+      />
       <div
-        className="column-header"
-        style={{ "--col-color": column.color } as React.CSSProperties}
+        className={`kanban-column ${isDraggingColumn ? "is-dragging" : ""}`}
+        id={`column-${column.id}`}
       >
-        <style>{`#column-${column.id} .column-header::before { background: ${column.color}; }`}</style>
-        <div className="column-header-left">
-          {isEditingTitle ? (
-            <input
-              ref={titleInputRef}
-              className="column-title-input"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onBlur={handleSaveTitle}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveTitle();
-                if (e.key === "Escape") setIsEditingTitle(false);
-              }}
-              aria-label="Column title"
-            />
-          ) : (
-            <span className="column-title">{column.title}</span>
-          )}
-          <span className="column-count">{tasks.length}</span>
-        </div>
+        <ColumnHeader
+          column={column}
+          tasksLength={tasks.length}
+          isEditingTitle={isEditingTitle}
+          editTitle={editTitle}
+          titleInputRef={titleInputRef}
+          setEditTitle={setEditTitle}
+          onStartEdit={handleStartEdit}
+          onSaveTitle={handleSaveTitle}
+          onCancelEdit={() => setIsEditingTitle(false)}
+          onDeleteColumn={handleDeleteColumn}
+        />
 
-        <div className="column-header-actions">
-          <button
-            className="column-action-btn"
-            onClick={handleStartEdit}
-            title="Rename column"
-            aria-label={`Rename ${column.title}`}
-          >
-            ✎
-          </button>
-          <button
-            className="column-action-btn delete"
-            onClick={handleDeleteColumn}
-            title="Delete column"
-            aria-label={`Delete ${column.title}`}
-          >
-            ✕
-          </button>
-        </div>
-      </div>
+        <ColumnBody
+          bodyRef={bodyRef}
+          isDragOver={isDragOver}
+          tasks={tasks}
+          onEditTask={onEditTask}
+          onDeleteTask={handleDeleteTask}
+        />
 
-      {/* Body — Drop Target */}
-      <div
-        ref={bodyRef}
-        className={`column-body ${isDragOver ? "is-drag-over" : ""}`}
-      >
-        {tasks.length === 0 ? (
-          <div className="column-body-empty">Drop tasks here</div>
-        ) : (
-          tasks.map((task, i) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              index={i}
-              onEdit={onEditTask}
-              onDelete={handleDeleteTask}
-            />
-          ))
-        )}
+        <ColumnFooter columnId={column.id} onAddTask={onAddTask} />
       </div>
-
-      {/* Footer — Add Card */}
-      <div className="column-footer">
-        <button
-          className="column-add-btn"
-          onClick={() => onAddTask(column.id)}
-          id={`add-task-${column.id}`}
-        >
-          <span className="column-add-icon" aria-hidden="true">
-            +
-          </span>
-          Add a card
-        </button>
-      </div>
+      <ColumnDropPreview
+        preview={closestColumnEdge === "right" ? columnDragPreview : null}
+      />
     </div>
   );
 }

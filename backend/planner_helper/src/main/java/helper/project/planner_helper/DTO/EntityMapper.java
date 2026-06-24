@@ -5,10 +5,12 @@ import java.util.List;
 import java.util.UUID;
 
 import helper.project.planner_helper.DTO.Events.ColumnResponse;
+import helper.project.planner_helper.DTO.Events.TagResponse;
 import helper.project.planner_helper.DTO.Events.TaskResponse;
 import helper.project.planner_helper.Database.ConversationEntity;
 import helper.project.planner_helper.Database.MessageEntity;
 import helper.project.planner_helper.Database.ProjectEntity;
+import helper.project.planner_helper.Database.TagEntity;
 import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Database.UserEntity;
@@ -119,5 +121,11 @@ public class EntityMapper {
                 message.getRole().name(),
                 message.getCreatedDate());
     }
-}
 
+    public static TagResponse mapToTagResponses(TagEntity tag) {
+        return new TagResponse(
+                tag.getId(),
+                tag.getName(),
+                tag.getColor());
+    }
+}

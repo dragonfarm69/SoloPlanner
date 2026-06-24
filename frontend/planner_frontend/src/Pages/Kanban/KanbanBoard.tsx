@@ -47,28 +47,10 @@ export default function KanbanBoard({
     }
   }, [isAddingColumn]);
 
-  const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
-
-  async function fetchColumns() {
-    try {
-      // const projectId = "asfafsa";
-      const url = `http://localhost:8081/projects/${projectId}/columns`;
-
-      const response = await fetch(url, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
-
-      console.log("Column Fetched: ", data);
-    } catch (e) {
-      console.error("Error when fetching columns: ", e);
-    }
-  }
+  const sortedColumns = [...columns].sort((a, b) =>
+    a.order.localeCompare(b.order),
+  );
+  console.log("SORTED: ", sortedColumns);
 
   /** Filter tasks by search and priority, then group by column */
   function getFilteredTasks(columnId: string): Task[] {
@@ -87,7 +69,7 @@ export default function KanbanBoard({
         if (filterPriority && t.priority !== filterPriority) return false;
         return true;
       })
-      .sort((a, b) => a.order - b.order);
+      .sort((a, b) => a.order.localeCompare(b.order));
   }
 
   async function handleAddColumn() {
@@ -119,8 +101,6 @@ export default function KanbanBoard({
       console.log("data passinG: ", payload);
 
       console.log("New Column created: ", data);
-
-      await fetchColumns();
     } catch (e) {
       console.error("Error when creating new column: ", e);
       return;
@@ -134,11 +114,13 @@ export default function KanbanBoard({
 
   return (
     <div className="kanban-board" id="kanban-board">
-      {sortedColumns.map((col) => (
+      {sortedColumns.map((col, i) => (
         <KanbanColumn
           projectId={projectId}
           key={col.id}
           column={col}
+          index={i}
+          allColumns={columns}
           tasks={getFilteredTasks(col.id)}
           dispatch={dispatch}
           onEditTask={onEditTask}

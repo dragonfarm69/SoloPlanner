@@ -105,7 +105,9 @@ export default function MainPage() {
         if (data.columnId !== editingTask.columnId) {
           const destTasks = getColumnTasks(data.columnId);
           const lastTask = destTasks[destTasks.length - 1];
-          const newOrder = lastTask ? lastTask.order + 100000 : 100000;
+          const newOrder = lastTask
+            ? (parseInt(lastTask.order, 36) + 100000).toString(36)
+            : (100000).toString(36);
           dispatch({
             type: "MOVE_TASK",
             payload: {
@@ -217,7 +219,6 @@ export default function MainPage() {
             deadline: t.deadline ? t.deadline.split("T")[0] : "",
           })),
         );
-        console.log("tasks: ", data);
         dispatch({ type: "LOAD_BOARD", payload: { columns, tasks } });
       } catch (error) {
         console.log("error when fetching task: ", error);
@@ -253,7 +254,8 @@ export default function MainPage() {
             payload: {
               title: data.task.title,
               description: data.task.description ?? "",
-              priority: (data.task.priority?.toLowerCase() ?? "low") as Priority,
+              priority: (data.task.priority?.toLowerCase() ??
+                "low") as Priority,
               labels: [],
               columnId: data.task.columnId,
               deadline: data.task.deadline
@@ -279,7 +281,8 @@ export default function MainPage() {
               id: data.task.id,
               title: data.task.title,
               description: data.task.description ?? "",
-              priority: (data.task.priority?.toLowerCase() ?? "low") as Priority,
+              priority: (data.task.priority?.toLowerCase() ??
+                "low") as Priority,
               deadline: data.task.deadline
                 ? data.task.deadline.split("T")[0]
                 : undefined,
@@ -294,7 +297,17 @@ export default function MainPage() {
             payload: {
               taskId: data.taskId!,
               toColumnId: data.columnId!,
-              newOrder: parseInt(data.newOrder!, 36),
+              newOrder: data.newOrder!,
+            },
+          });
+          break;
+
+        case "COLUMN_MOVED":
+          dispatch({
+            type: "MOVE_COLUMN",
+            payload: {
+              columnId: data.columnId!,
+              newOrder: data.newOrder!,
             },
           });
           break;

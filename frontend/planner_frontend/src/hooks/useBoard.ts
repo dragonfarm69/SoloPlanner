@@ -29,11 +29,15 @@ type BoardAction =
   | { type: "DELETE_TASK"; payload: { id: string } }
   | {
       type: "MOVE_TASK";
-      payload: { taskId: string; toColumnId: string; newOrder: number };
+      payload: { taskId: string; toColumnId: string; newOrder: string };
     }
   | { type: "ADD_COLUMN"; payload: { title: string; color: string } }
   | { type: "UPDATE_COLUMN"; payload: { id: string } & Partial<Column> }
   | { type: "DELETE_COLUMN"; payload: { id: string } }
+  | {
+      type: "MOVE_COLUMN";
+      payload: { columnId: string; newOrder: string };
+    }
   | { type: "LOAD_BOARD"; payload: Board };
 
 // ─── Helpers ──────────────────────────────────────────
@@ -41,13 +45,13 @@ type BoardAction =
 function getTasksForColumn(tasks: Task[], columnId: string): Task[] {
   return tasks
     .filter((t) => t.columnId === columnId)
-    .sort((a, b) => a.order - b.order);
+    .sort((a, b) => a.order.localeCompare(b.order));
 }
 
 function reorderTasksInColumn(tasks: Task[], columnId: string): Task[] {
   const columnTasks = getTasksForColumn(tasks, columnId);
   const otherTasks = tasks.filter((t) => t.columnId !== columnId);
-  const reordered = columnTasks.map((t, i) => ({ ...t, order: i }));
+  const reordered = columnTasks.map((t, i) => ({ ...t, order: String(i) }));
   return [...otherTasks, ...reordered];
 }
 
@@ -65,7 +69,7 @@ function boardReducer(state: Board, action: BoardAction): Board {
       const newTask: Task = {
         ...action.payload,
         id: generateId("task"),
-        order: columnTasks.length,
+        order: String(columnTasks.length),
         createdAt: now,
         updatedAt: now,
       };
@@ -91,13 +95,14 @@ function boardReducer(state: Board, action: BoardAction): Board {
 
     case "MOVE_TASK": {
       const { taskId, toColumnId, newOrder } = action.payload;
+      const updatedTasks = state.tasks.map((t) =>
+        t.id === taskId
+          ? { ...t, columnId: toColumnId, order: newOrder, updatedAt: now }
+          : t,
+      );
       return {
         ...state,
-        tasks: state.tasks.map((t) =>
-          t.id === taskId
-            ? { ...t, columnId: toColumnId, order: newOrder, updatedAt: now }
-            : t,
-        ),
+        tasks: updatedTasks.sort((a, b) => a.order.localeCompare(b.order)),
       };
     }
 
@@ -106,7 +111,7 @@ function boardReducer(state: Board, action: BoardAction): Board {
         id: generateId("col"),
         title: action.payload.title,
         color: action.payload.color,
-        order: state.columns.length,
+        order: String(state.columns.length),
       };
       return { ...state, columns: [...state.columns, newColumn] };
     }
@@ -126,8 +131,19 @@ function boardReducer(state: Board, action: BoardAction): Board {
         ...state,
         columns: state.columns
           .filter((c) => c.id !== action.payload.id)
-          .map((c, i) => ({ ...c, order: i })),
+          .map((c, i) => ({ ...c, order: String(i) })),
         tasks: state.tasks.filter((t) => t.columnId !== action.payload.id),
+      };
+    }
+
+    case "MOVE_COLUMN": {
+      const { columnId, newOrder } = action.payload;
+      const updatedColumns = state.columns.map((c) =>
+        c.id === columnId ? { ...c, order: newOrder } : c,
+      );
+      return {
+        ...state,
+        columns: updatedColumns.sort((a, b) => a.order.localeCompare(b.order)),
       };
     }
 

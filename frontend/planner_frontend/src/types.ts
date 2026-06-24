@@ -7,7 +7,7 @@ export interface Task {
   priority: Priority;
   labels: string[];
   columnId: string;
-  order: number;
+  order: string;
   createdAt: number;
   updatedAt: number;
   deadline?: string; // ISO date string e.g. "2026-06-30", optional
@@ -16,7 +16,7 @@ export interface Task {
 export interface Column {
   id: string;
   title: string;
-  order: number;
+  order: string;
   color: string;
 }
 

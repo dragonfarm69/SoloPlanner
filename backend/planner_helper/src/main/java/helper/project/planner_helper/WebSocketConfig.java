@@ -18,21 +18,21 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 import helper.HandShakeInterceptor;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.UserEntity;
-import helper.project.planner_helper.Services.ProjectService;
-import helper.project.planner_helper.Services.UserService;
+import helper.project.planner_helper.Repository.ProjectRepository;
+import helper.project.planner_helper.Repository.UserRepository;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    private final ProjectService projectService;
-    private final UserService userService;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
-    public WebSocketConfig(UserService userService,
-            ProjectService projectService) {
-        this.userService = userService;
-        this.projectService = projectService;
+    public WebSocketConfig(UserRepository userRepository,
+            ProjectRepository projectRepository) {
+        this.userRepository = userRepository;
+        this.projectRepository = projectRepository;
     }
 
     @Override
@@ -62,7 +62,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             });
                     String userId = (String) payloadMap.get("sub");
 
-                    UserEntity user = userService.findUser(userId);
+                    UserEntity user = userRepository.findUserByUserId(userId);
                     if (user == null) {
                         throw new RuntimeException("User not found: " + userId);
                     }
@@ -73,14 +73,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
                         UUID projectUUID = UUID.fromString(projectId);
 
-                        ProjectEntity project = projectService.findProject(projectUUID);
+                        ProjectEntity project = projectRepository.findById(projectUUID).orElse(null);
 
                         if (project == null) {
                             throw new RuntimeException("This project doesn't exists: " + projectId);
                         }
 
                         // check if user is in project
-                        boolean isUserInProject = projectService.isUserInProject(projectUUID, user.getId());
+                        boolean isUserInProject = projectRepository.findUserInProject(user.getId(), projectUUID)
+                                .isPresent();
 
                         if (!isUserInProject) {
                             throw new RuntimeException("This user " + userId + "is not in the project " + projectId);

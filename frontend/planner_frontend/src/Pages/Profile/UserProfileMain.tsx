@@ -189,8 +189,6 @@ export default function UserProfile() {
     getProjects();
   }, []);
 
-  const { projectId } = useParams<{ projectId: string }>();
-
   const createNewProject = async (data: ProjectFormData) => {
     console.log("data: ", data);
     try {
@@ -254,18 +252,6 @@ export default function UserProfile() {
           <div className="profile-member-since-section">
             <span className="member-since-label">MEMBER SINCE</span>
             <span className="member-since-date">{formattedDate}</span>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="profile-stats-grid">
-          <div className="profile-stat-box">
-            <span className="stat-number-blue">155</span>
-            <span className="stat-label-gray">Tasks Completed</span>
-          </div>
-          <div className="profile-stat-box">
-            <span className="stat-number-blue">50</span>
-            <span className="stat-label-gray">Projects</span>
           </div>
         </div>
 

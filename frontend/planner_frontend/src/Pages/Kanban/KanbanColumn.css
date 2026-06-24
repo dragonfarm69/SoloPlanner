@@ -176,3 +176,43 @@
   margin: 0 var(--space-2);
   flex-shrink: 0;
 }
+
+/* ─── Column Drag & Drop Layout ───────── */
+
+.kanban-column-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  height: 100%;
+  gap: var(--space-5); /* Keep spacing consistent with Kanban board gap */
+}
+
+.kanban-column.is-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.column-drop-indicator-preview {
+  width: var(--column-width);
+  min-width: var(--column-width);
+  height: 100%;
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface-hover);
+  opacity: 0.5;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.column-drop-indicator-preview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--col-color, var(--accent));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}

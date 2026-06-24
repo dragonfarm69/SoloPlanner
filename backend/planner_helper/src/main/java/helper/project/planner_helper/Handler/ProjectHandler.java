@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import helper.project.planner_helper.DTO.ColumnPositionRequest;
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.ProjectBoardResponse;
 import helper.project.planner_helper.DTO.ProjectColumnRequest;
@@ -84,6 +85,20 @@ public class ProjectHandler {
         return EntityMapper.mapToTaskResponse(task);
     }
 
+    @GetMapping("/{project_id}/tags")
+    public TaskResponse getTag(@PathVariable("project_id") String projectId,
+            @PathVariable("column_id") String columnId, @Validated @RequestBody ProjectTaskRequest request) {
+        TaskEntity task = this.taskService.createTask(request, projectId, columnId);
+        return EntityMapper.mapToTaskResponse(task);
+    }
+
+    @PostMapping("/{project_id}/tags")
+    public TaskResponse addTag(@PathVariable("project_id") String projectId,
+            @PathVariable("column_id") String columnId, @Validated @RequestBody ProjectTaskRequest request) {
+        TaskEntity task = this.taskService.createTask(request, projectId, columnId);
+        return EntityMapper.mapToTaskResponse(task);
+    }
+
     @PostMapping
     public ProjectResponseRecord createNewProject(@Validated @RequestBody ProjectRequestRecord request) {
         return this.projectService.createProject(request);
@@ -110,6 +125,14 @@ public class ProjectHandler {
             @PathVariable("column_id") String columnId, @PathVariable("task_id") String taskId,
             @Validated @RequestBody TaskPositionRequest request) {
         this.taskService.moveTask(taskId, projectId, columnId, request);
+    }
+
+    @PatchMapping("/{project_id}/{column_id}/position")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void moveTask(@PathVariable("project_id") String projectId,
+            @PathVariable("column_id") String columnId,
+            @Validated @RequestBody ColumnPositionRequest request) {
+        this.projectService.moveColumn(columnId, projectId, request);
     }
 
     @DeleteMapping
