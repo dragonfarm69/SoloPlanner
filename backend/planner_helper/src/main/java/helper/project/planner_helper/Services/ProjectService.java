@@ -21,10 +21,12 @@ import helper.project.planner_helper.Types.Priority;
 import helper.project.planner_helper.DTO.Events.ColumnResponse;
 import helper.project.planner_helper.DTO.Events.EventPayload;
 import helper.project.planner_helper.DTO.Events.TaskResponse;
+import helper.project.planner_helper.Database.GroupEntity;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Database.UserEntity;
+import helper.project.planner_helper.Repository.GroupRepository;
 import helper.project.planner_helper.Repository.ProjectRepository;
 import helper.project.planner_helper.Repository.TagRepository;
 import helper.project.planner_helper.Repository.TaskColumnRepository;
@@ -38,16 +40,18 @@ public class ProjectService {
     private final TaskColumnRepository taskColumnRepository;
     private final TagRepository tagRepository;
     private final SimpMessagingTemplate mesageTemplate;
+    private final GroupRepository groupRepository;
 
     // constructor
     public ProjectService(ProjectRepository projectRepository, UserRepository userRepository,
             TaskColumnRepository taskColumnRepository, TagRepository tagRepository,
-            SimpMessagingTemplate mesageTemplate) {
+            SimpMessagingTemplate mesageTemplate, GroupRepository groupRepository) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.taskColumnRepository = taskColumnRepository;
         this.tagRepository = tagRepository;
         this.mesageTemplate = mesageTemplate;
+        this.groupRepository = groupRepository;
     }
 
     public ProjectEntity findProject(UUID projecUuid) {
@@ -93,6 +97,12 @@ public class ProjectService {
         }
 
         project.setUsers(users);
+
+        if (request.groupId() != null) {
+            GroupEntity group = this.groupRepository.findById(request.groupId())
+                    .orElseThrow(() -> new RuntimeException("Group not found: " + request.groupId()));
+            project.setGroup(group);
+        }
 
         // Save Entity
         ProjectEntity savedProject = this.projectRepository.save(project);
@@ -219,6 +229,7 @@ public class ProjectService {
                 ? entity.getUsers().stream().map(UserEntity::getId).toList()
                 : List.of();
         UUID ownerId = entity.getOwner() != null ? entity.getOwner().getId() : null;
+        UUID groupId = entity.getGroup() != null ? entity.getGroup().getId() : null;
         return new ProjectResponseRecord(
                 entity.getId(),
                 entity.getTitle(),
@@ -226,7 +237,8 @@ public class ProjectService {
                 ownerId,
                 userIds,
                 entity.getCreatedDate(),
-                entity.getLastEdited());
+                entity.getLastEdited(),
+                groupId);
     }
 
     public ProjectBoardResponse getProjectBoard(UUID projectId) {

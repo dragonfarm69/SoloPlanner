@@ -35,6 +35,10 @@ public class ProjectEntity {
     @JoinColumn(name = "owner_id", nullable = false)
     private UserEntity owner;
 
+    @ManyToOne
+    @JoinColumn(name = "group_id")
+    private GroupEntity group;
+
     @ManyToMany
     @JoinTable(name = "project_user", joinColumns = @JoinColumn(name = "project_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
     private List<UserEntity> users; // list of users participate in the project
@@ -130,5 +134,13 @@ public class ProjectEntity {
 
     public void setColumns(List<TaskColumn> columns) {
         this.columns = columns;
+    }
+
+    public GroupEntity getGroup() {
+        return group;
+    }
+
+    public void setGroup(GroupEntity group) {
+        this.group = group;
     }
 }

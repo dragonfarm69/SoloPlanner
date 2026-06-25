@@ -9,6 +9,7 @@ import helper.project.planner_helper.DTO.Events.TagResponse;
 import helper.project.planner_helper.DTO.Events.TaskResponse;
 import helper.project.planner_helper.DTO.Events.TaskSummaryResponse;
 import helper.project.planner_helper.Database.ConversationEntity;
+import helper.project.planner_helper.Database.GroupEntity;
 import helper.project.planner_helper.Database.MessageEntity;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TagEntity;
@@ -165,5 +166,40 @@ public class EntityMapper {
         return new ProjectUserSummary(
                 user.getId().toString(),
                 user.getUsername());
+    }
+
+    public static GroupResponse mapToGroupResponse(GroupEntity group) {
+        List<UserResponse> userResponses = new ArrayList<>();
+        if (group.getUsers() != null) {
+            for (UserEntity user : group.getUsers()) {
+                userResponses.add(mapToUserResponse(user));
+            }
+        }
+
+        List<ProjectResponseRecord> projectResponses = new ArrayList<>();
+        if (group.getProjects() != null) {
+            for (ProjectEntity project : group.getProjects()) {
+                List<UUID> userIds = project.getUsers() != null
+                        ? project.getUsers().stream().map(UserEntity::getId).toList()
+                        : List.of();
+                UUID ownerId = project.getOwner() != null ? project.getOwner().getId() : null;
+                projectResponses.add(new ProjectResponseRecord(
+                        project.getId(),
+                        project.getTitle(),
+                        project.getDescription(),
+                        ownerId,
+                        userIds,
+                        project.getCreatedDate(),
+                        project.getLastEdited(),
+                        group.getId()));
+            }
+        }
+
+        return new GroupResponse(
+                group.getId() != null ? group.getId().toString() : null,
+                group.getName(),
+                group.getInviteCode(),
+                userResponses,
+                projectResponses);
     }
 }

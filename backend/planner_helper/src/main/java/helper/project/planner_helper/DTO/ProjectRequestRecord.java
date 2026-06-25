@@ -10,5 +10,6 @@ public record ProjectRequestRecord(
                 String title,
                 String description,
                 UUID ownerId,
-                List<UUID> userIds) {
+                List<UUID> userIds,
+                UUID groupId) {
 }

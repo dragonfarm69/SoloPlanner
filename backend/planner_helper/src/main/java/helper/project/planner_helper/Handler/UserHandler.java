@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -16,9 +18,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import helper.project.planner_helper.DTO.EntityMapper;
+import helper.project.planner_helper.DTO.GroupResponse;
 import helper.project.planner_helper.DTO.UserRequestRecord;
 import helper.project.planner_helper.DTO.UserResponse;
+import helper.project.planner_helper.Database.GroupEntity;
 import helper.project.planner_helper.Database.UserEntity;
+import helper.project.planner_helper.Services.GroupService;
 import helper.project.planner_helper.Services.UserService;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -27,9 +32,11 @@ import tools.jackson.databind.ObjectMapper;
 @RequestMapping("/user")
 public class UserHandler {
     private final UserService userService;
+    private final GroupService groupService;
 
-    public UserHandler(UserService userService) {
+    public UserHandler(UserService userService, GroupService groupService) {
         this.userService = userService;
+        this.groupService = groupService;
     }
 
     @GetMapping("/me")
@@ -66,8 +73,25 @@ public class UserHandler {
         return "deleted user";
     }
 
-    @GetMapping("/groups")
-    public List<String> getUserGroups() {
-        return Arrays.asList("group 1", "group 2");
+    @GetMapping("/me/groups")
+    public ResponseEntity<List<GroupResponse>> getUserGroups(@CookieValue(name = "access_token") String accessToken) {
+        String[] chunks = accessToken.split("\\.");
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        String payload = new String(decoder.decode(chunks[1]));
+        ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            Map<String, Object> payloadMap = mapper.readValue(payload, new TypeReference<Map<String, Object>>() {
+            });
+            String userId = (String) payloadMap.get("sub");
+            UserEntity user = this.userService.findUser(userId);
+            List<GroupEntity> groups = this.groupService.getUserGroups(user.getId());
+            List<GroupResponse> groupResponses = groups.stream()
+                    .map(EntityMapper::mapToGroupResponse)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(groupResponses);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to decode token and fetch groups", e);
+        }
     }
 }

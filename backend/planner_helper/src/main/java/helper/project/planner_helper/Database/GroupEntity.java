@@ -11,13 +11,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
 //group is a collection of users
 @Entity
-@Table(name = "user_groups")
+@Table(name = "groups")
 public class GroupEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -30,6 +31,12 @@ public class GroupEntity {
     @ManyToMany
     @JoinTable(name = "group_user", joinColumns = @JoinColumn(name = "group_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
     private List<UserEntity> users;
+
+    @Column(name = "invite_code", unique = true, nullable = false)
+    private String inviteCode;
+
+    @OneToMany(mappedBy = "group", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private List<ProjectEntity> projects = new java.util.ArrayList<>();
 
     private Instant createdDate;
 
@@ -55,12 +62,28 @@ public class GroupEntity {
         this.name = name;
     }
 
+    public String getInviteCode() {
+        return inviteCode;
+    }
+
+    public void setInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
+    }
+
     public List<UserEntity> getUsers() {
         return users;
     }
 
     public void setUsers(List<UserEntity> users) {
         this.users = users;
+    }
+
+    public List<ProjectEntity> getProjects() {
+        return projects;
+    }
+
+    public void setProjects(List<ProjectEntity> projects) {
+        this.projects = projects;
     }
 
     public Instant getCreatedDate() {

@@ -13,5 +13,6 @@ public record ProjectResponseRecord(
                 UUID ownerId,
                 List<UUID> userIds,
                 Instant createdDate,
-                Instant lastEdited) {
+                Instant lastEdited,
+                UUID groupId) {
 }
