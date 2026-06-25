@@ -17,7 +17,7 @@ export function ProjectCardItem({ project }: ProjectCardProps) {
     >
       <div className="project-card-info">
         <div className="project-title-row">
-          <h4 className="project-name-text">{project.name}</h4>
+          <h4 className="project-name-text">{project.title}</h4>
         </div>
         <p className="project-desc-text">{project.description}</p>
       </div>

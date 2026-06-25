@@ -272,11 +272,7 @@ export default function UserProfile() {
   const [projects, setProjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-  const [groups, setGroups] = useState<GroupData[]>([
-    { id: "hello1", name: "Engineering Group", iconType: "engineering" },
-    { id: "hello2", name: "Design Group", iconType: "design" },
-    { id: "hello3", name: "Admin Group", iconType: "admin" },
-  ]);
+  const [groups, setGroups] = useState<GroupData[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
 
   async function getProjects() {

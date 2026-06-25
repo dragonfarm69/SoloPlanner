@@ -60,10 +60,8 @@ export interface GroupData {
 
 export interface ProjectData {
   id: string;
-  name: string;
+  title: string;
   description: string;
-  // tasksLeft: number;
-  // progressPercent: number;
 }
 
 export interface UserProfileData {
