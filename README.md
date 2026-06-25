@@ -1,100 +1,90 @@
 # SoloPlanner
 
-SoloPlanner is a next-generation project planning and task management application (similar to Jira and Trello) featuring a deeply integrated **AI Project Manager & Scrum Master (PM/SM)**.
+An AI-powered project planner and task manager with a built-in **AI Project Manager & Scrum Master**. Interact with your board in plain English — no clicking through forms.
 
-Unlike traditional planners where users must manually click through forms to update tasks, SoloPlanner allows users to interact with an AI Assistant via chat to manage their workflow. The AI acts as a smart PM/SM by:
-
-- Interpreting natural language commands (e.g., _"Delay the database migration task by 2 days"_).
-- Checking for schedule blockages, resource overallocation, or missing dependencies.
-- Updating the project board, sprints, and task states directly through tool function calls.
-- Conducting Scrum rituals (Daily Standups, Sprint Planning, Retrospectives) via interactive chat.
+> "Delay the database migration task by 2 days and flag any blockers."
 
 ---
 
-## Architecture & Tech Stack
+## How it works
 
-SoloPlanner is built using a modern, decoupled microservices-based architecture:
+A message from the browser travels through three services before anything changes on your board:
+
+```
+Browser → Go AI Microservice → Ollama (gemma4 LLM)
+                    ↓ tool calls
+              Java REST API → PostgreSQL
+                    ↓
+              WebSocket response back to browser
+```
+
+The Go service hosts the chat WebSocket and orchestrates LLM tool calls. When the model decides an action is needed (move a task, update a sprint, flag a dependency), it calls the Java backend via HTTP. Errors from the backend are fed back to the LLM as tool feedback so it can explain problems in natural language.
+
+---
+
+## Tech stack
+
+| Layer           | Technology                                                         |
+| :-------------- | :----------------------------------------------------------------- |
+| Frontend        | React 19 + TypeScript, Vite 8, `@atlaskit/pragmatic-drag-and-drop` |
+| Backend         | Spring Boot 4.0.6 / Java 21, Spring Data JPA, PostgreSQL           |
+| AI microservice | Go 1.24.4, `tmc/langchaingo` v0.1.14, Ollama (`gemma4`)            |
+| Auth            | Keycloak (OIDC OAuth2, HttpOnly cookies)                           |
+| Cache           | Redis                                                              |
 
 ![Planner Architecture](RepoAssets/PlannerArchitecture.png)
 
-### 1. Backend (Java)
-
-- **Framework**: Spring Boot 4.0.6 / Java 21
-- **API & WebSocket**: Spring Web MVC REST endpoints & Spring WebSocket + STOMP broker.
-- **Data Layer**: Spring Data JPA + Hibernate + PostgreSQL.
-- **Authentication**: Keycloak OIDC (OAuth2 Authorization Code Flow with HttpOnly cookies).
-
-### 2. AI Microservice (Go)
-
-- **Framework & Runtime**: Go 1.24.4
-- **LLM Client**: `tmc/langchaingo` v0.1.14 utilizing Ollama (running the `gemma4` model).
-- **Communication**: WebSocket server (`gorilla/websocket`) for real-time streaming of AI responses to the browser.
-- **Tool Calling**: Invokes REST endpoints on the Java backend via a custom tool registry.
-
-### 3. Frontend (React)
-
-- **Framework**: React 19 + TypeScript / Vite 8
-- **Drag & Drop**: `@atlaskit/pragmatic-drag-and-drop` v1.8
-- **State Management**: React `useReducer` with `localStorage` persistence.
-
 ---
 
-## Directory Structure
+## Directory structure
 
-```text
+```
 SoloPlanner/
-├── agent_context/          # AI Context and system documents
-├── AI_microservice/        # Go AI service (LLM tool-calling orchestrator)
+├── agent_context/        # AI context and system documents
+├── AI_microservice/      # Go AI service (LLM tool-calling orchestrator)
 ├── backend/
-│   └── planner_helper/     # Spring Boot backend application
-├── docker/                 # Container infrastructure files (PostgreSQL, Keycloak, etc.)
+│   └── planner_helper/   # Spring Boot backend
+├── docker/               # Infrastructure (PostgreSQL, Keycloak, Ollama, Redis)
 └── frontend/
-    └── planner_frontend/   # React + Vite frontend client
+    └── planner_frontend/ # React + Vite client
 ```
 
 ---
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
-Make sure you have the following installed on your machine:
+- Docker & Docker Compose
+- Java 21 (JDK) + Maven (wrapper included)
+- Go 1.24.4+
+- Node.js + pnpm
 
-- **Docker** & **Docker Compose**
-- **Java 21 (JDK)** & Maven (uses wrapper `./mvnw`)
-- **Go 1.24.4+**
-- **Node.js** & **pnpm** (Package manager for the frontend)
-
----
-
-### Step 1: Spin Up the Infrastructure
-
-Start the database, authentication server, and Ollama service using Docker Compose:
+### Step 1 — Start infrastructure
 
 ```bash
 docker compose -f docker/docker_setup.yml up -d
 ```
 
-To watch the initialization sidecar download the `gemma4` LLM model, run:
+The first run will download the `gemma4` model via Ollama. Watch progress with:
 
 ```bash
 docker logs -f planner_ollama_init
 ```
 
----
+Wait until this completes before starting the Go service — the LLM must be available before the AI microservice can serve requests.
 
-### Step 2: Configure & Start the Java Backend
-
-Navigate to the backend directory and run the application:
+### Step 2 — Start the Java backend
 
 ```bash
 cd backend/planner_helper
 ./mvnw spring-boot:run
 ```
 
-_The backend service starts on **port 8081** by default._
+Starts on **port 8081**.
 
-#### Backend Environment Snippet (`application.yml`)
+<details>
+<summary>Backend config snippet (application.yml)</summary>
 
 ```yaml
 spring:
@@ -114,32 +104,28 @@ spring:
           issuer-uri: http://localhost:8080/realms/planner
 ```
 
----
+</details>
 
-### Step 3: Configure & Start the Go AI Microservice
-
-Navigate to the AI microservice directory and execute the Go binary:
+### Step 3 — Start the Go AI microservice
 
 ```bash
 cd AI_microservice
 go run .
 ```
 
-_The AI service starts on **port 8090**._
+Starts on **port 8090**.
 
-#### AI Environment Variables
+**Environment variables (all optional — defaults shown):**
 
-- `OLLAMA_HOST` (Default: `http://localhost:11434`)
-- `OLLAMA_MODEL` (Default: `gemma4`)
-- `JAVA_BACKEND_URL` (Default: `http://localhost:8081`)
-- `INTERNAL_SECRET` (Default: `changeme` — used for communication security)
-- `PORT` (Default: `8090`)
+| Variable           | Default                  | Description                               |
+| :----------------- | :----------------------- | :---------------------------------------- |
+| `OLLAMA_HOST`      | `http://localhost:11434` | Ollama inference endpoint                 |
+| `OLLAMA_MODEL`     | `gemma4`                 | Model name                                |
+| `JAVA_BACKEND_URL` | `http://localhost:8081`  | Java REST API base URL                    |
+| `INTERNAL_SECRET`  | `changeme`               | Shared secret for service-to-service auth |
+| `PORT`             | `8090`                   | Port this service listens on              |
 
----
-
-### Step 4: Build & Launch the Frontend
-
-Navigate to the frontend directory, install dependencies, and start the development server:
+### Step 4 — Start the frontend
 
 ```bash
 cd frontend/planner_frontend
@@ -147,34 +133,55 @@ pnpm install
 pnpm dev
 ```
 
-_Open [http://localhost:5173](http://localhost:5173) in your browser._
+Open [http://localhost:5173](http://localhost:5173).
 
 ---
 
-## Port Configuration Reference (Development)
+## Port reference
 
-| Service                | Port       | Description                            |
-| :--------------------- | :--------- | :------------------------------------- |
-| **React Frontend**     | `5173`     | User Interface                         |
-| **Java Spring Boot**   | `8081`     | Core REST API & WebSocket STOMP Broker |
-| **Go AI Microservice** | `8090`     | LLM Orchestrator & Chat WebSocket      |
-| **Keycloak**           | `8080`     | IAM & User Management Console          |
-| **PostgreSQL**         | `5432`     | System Database                        |
-| **Keycloak DB Schema** | `keycloak` | DB schema inside PostgreSQL            |
-| **Redis**              | `6379`     | Cache & Session Store                  |
-| **Ollama**             | `11434`    | Inference Engine                       |
+| Service            | Port    | Notes                                             |
+| :----------------- | :------ | :------------------------------------------------ |
+| React frontend     | `5173`  | Dev server                                        |
+| Java Spring Boot   | `8081`  | REST API + STOMP WebSocket                        |
+| Go AI microservice | `8090`  | LLM orchestrator + chat WebSocket                 |
+| Keycloak           | `8080`  | IAM + user management                             |
+| PostgreSQL         | `5432`  | Main database (`keycloak` schema also lives here) |
+| Redis              | `6379`  | Cache + session store                             |
+| Ollama             | `11434` | Inference engine                                  |
 
 ---
 
-## Development Guidelines
+## Troubleshooting
 
-1. **Strict Layer Separation**:
-   - Handlers/Controllers process HTTP/REST request/response mapping only.
-   - Services implement all business logic, validation, and transition checks.
-   - Repositories deal solely with data persistence.
-2. **AI Error Handlers**:
-   - If a backend service request fails, return descriptive HTTP statuses (`4xx` or `5xx`) and detailed error messages. The Go microservice catches these and feeds them back as tool feedback to the LLM so it can explain issues in natural language.
-3. **Secrets Management**:
-   - **Important**: Keycloak client secrets are currently hardcoded for local testing. Move them to environment variables or use Spring profile-based configuration before running in staging/production.
-4. **Ordering Algorithm**:
-   - Task ordering uses base-36 lexicographical ordering. Avoid editing task positioning logic without handling space-exhaustion (see the TODO in `TaskService.java`).
+**Chat sends messages but nothing happens**
+The Go service couldn't reach Ollama. Check that `planner_ollama_init` has finished and that `OLLAMA_HOST` is correct.
+
+**`401 Unauthorized` from the Java API**
+Keycloak may not have finished initializing. Give it 30–60 seconds after `docker compose up` and try again.
+
+**Port already in use**
+Another process is on one of the ports above. Stop it or override the port via environment variable (Java: `SERVER_PORT`, Go: `PORT`, frontend: `vite --port XXXX`).
+
+**Frontend shows a blank screen after login**
+Check the browser console for CORS errors. Ensure Keycloak is running and the redirect URI matches `http://localhost:5173`.
+
+---
+
+## Development guidelines
+
+**Layer separation**
+Handlers/controllers handle HTTP mapping only. Services own all business logic, validation, and transition checks. Repositories handle persistence.
+
+**AI error handling**
+Return descriptive `4xx`/`5xx` responses with detailed error messages. The Go microservice feeds these back to the LLM as tool feedback so it can explain failures in plain language rather than returning generic errors.
+
+**Task ordering**
+Task positioning uses base-36 lexicographic ordering. Do not edit the ordering logic in `TaskService.java` without also handling space exhaustion (see the existing TODO comment).
+
+> ⚠️ **Security — before deploying anywhere outside your local machine:** Keycloak client secrets are currently hardcoded for local development. Move them to environment variables or Spring profile-based configuration before running in staging or production.
+
+---
+
+## Contributing
+
+Issues and PRs are welcome. Please open an issue first for significant changes so we can discuss the approach.
