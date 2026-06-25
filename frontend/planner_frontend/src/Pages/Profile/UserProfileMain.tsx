@@ -6,34 +6,6 @@ import type { UserProjectResponse } from "../../DTO/UserProjectResponse";
 import ProjectModal, {
   type ProjectFormData,
 } from "../../components/ProjectModal";
-import { useParams } from "react-router-dom";
-
-const mockUser: UserProfileData = {
-  id: "74b145fb-330f-494a-b6c1-27cd8f06737a",
-  username: "johndoe99",
-  firstName: "John",
-  lastName: "Doe",
-  createdDate: "2026-06-03T15:30:00Z",
-  tasksCompleted: 128,
-};
-
-const mockGroupData: GroupData = {
-  id: "hello",
-  name: "hello",
-  iconType: "engineering",
-};
-
-const mockGroupData2: GroupData = {
-  id: "hello",
-  name: "hello",
-  iconType: "design",
-};
-
-const mockGroupData3: GroupData = {
-  id: "hello",
-  name: "hello",
-  iconType: "admin",
-};
 
 // Helper components for modularity and readability
 function LogoIcon() {
@@ -62,7 +34,23 @@ function LogoIcon() {
 
 function renderGroupIcon(type: string) {
   switch (type) {
-    case "engineering":
+    case "all":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          width="18"
+          height="18"
+        >
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+        </svg>
+      );
+    default:
       return (
         <svg
           viewBox="0 0 24 24"
@@ -78,38 +66,6 @@ function renderGroupIcon(type: string) {
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       );
-    case "design":
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          width="18"
-          height="18"
-        >
-          <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" />
-          <circle cx="7.5" cy="10.5" r="1.5" fill="currentColor" />
-          <circle cx="11.5" cy="7.5" r="1.5" fill="currentColor" />
-          <circle cx="16.5" cy="9.5" r="1.5" fill="currentColor" />
-          <circle cx="15.5" cy="14.5" r="1.5" fill="currentColor" />
-        </svg>
-      );
-    case "admin":
-    default:
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          width="18"
-          height="18"
-        >
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
-      );
   }
 }
 
@@ -117,18 +73,24 @@ interface GroupSelectorProps {
   groups: GroupData[];
   selectedGroupId: string;
   onSelect: (id: string) => void;
+  onCreateGroupClick: () => void;
 }
 
 function GroupSelector({
   groups,
   selectedGroupId,
   onSelect,
+  onCreateGroupClick,
 }: GroupSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedGroup =
-    groups.find((g) => g.id === selectedGroupId) || groups[0];
-
-  if (!selectedGroup) return null;
+    selectedGroupId === "all"
+      ? { id: "all", name: "All Groups", iconType: "all" }
+      : groups.find((g) => g.id === selectedGroupId) || {
+          id: "all",
+          name: "All Groups",
+          iconType: "all",
+        };
 
   return (
     <div className="group-selector-container">
@@ -160,6 +122,30 @@ function GroupSelector({
 
       {isOpen && (
         <div className="group-selector-dropdown" role="listbox">
+          <div
+            role="option"
+            aria-selected={selectedGroupId === "all"}
+            className={`group-selector-item ${
+              selectedGroupId === "all" ? "selected" : ""
+            }`}
+            onClick={() => {
+              onSelect("all");
+              setIsOpen(false);
+            }}
+          >
+            <div className="group-selector-item-left">
+              <span className="group-selector-icon all">
+                {renderGroupIcon("all")}
+              </span>
+              <span className="group-selector-item-name">Show All</span>
+            </div>
+            {selectedGroupId === "all" && (
+              <span className="group-selector-check">✓</span>
+            )}
+          </div>
+
+          <div className="group-selector-divider"></div>
+
           {groups.map((group) => (
             <div
               key={group.id}
@@ -184,14 +170,97 @@ function GroupSelector({
               )}
             </div>
           ))}
+
+          <div className="group-selector-divider"></div>
+
+          <button
+            className="group-selector-create-btn"
+            onClick={() => {
+              onCreateGroupClick();
+              setIsOpen(false);
+            }}
+          >
+            <span className="group-selector-create-icon">+</span>
+            <span>Create Group</span>
+          </button>
         </div>
       )}
     </div>
   );
 }
 
+interface GroupModalProps {
+  onSave: (groupName: string) => void;
+  onClose: () => void;
+}
+
+function GroupModal({ onSave, onClose }: GroupModalProps) {
+  const [groupName, setGroupName] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (groupName.trim()) {
+      onSave(groupName.trim());
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Create group"
+      >
+        <div className="modal-header">
+          <h2 className="modal-title">Create New Group</h2>
+          <button
+            className="modal-close"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label className="form-label" htmlFor="group-name-input">
+              Group Name
+            </label>
+            <input
+              type="text"
+              id="group-name-input"
+              className="form-input"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="e.g., Development Team"
+              autoFocus
+              required
+            />
+          </div>
+        </div>
+        <div className="modal-footer">
+          <div className="modal-footer-right">
+            <button className="btn-modal-cancel" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              className="btn-modal-save"
+              onClick={handleSubmit}
+              disabled={!groupName.trim()}
+            >
+              Create Group
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function UserProfile() {
-  const formattedDate = new Date(mockUser.createdDate).toLocaleDateString(
+  //TODO: replace this with user data
+  const formattedDate = new Date("2026-06-03T15:30:00Z").toLocaleDateString(
     undefined,
     {
       year: "numeric",
@@ -202,12 +271,13 @@ export default function UserProfile() {
 
   const [projects, setProjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [groups, setGroups] = useState<GroupData[]>([
     { id: "hello1", name: "Engineering Group", iconType: "engineering" },
     { id: "hello2", name: "Design Group", iconType: "design" },
     { id: "hello3", name: "Admin Group", iconType: "admin" },
   ]);
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("hello1");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
 
   async function getProjects() {
     try {
@@ -229,6 +299,7 @@ export default function UserProfile() {
           title: project.title,
           description: project.description,
           ownerId: project.ownerId,
+          groupId: project.groupId,
         }),
       );
 
@@ -258,14 +329,12 @@ export default function UserProfile() {
           iconType: g.iconType || "admin",
         }));
         setGroups(fetchedGroups);
-        setSelectedGroupId(fetchedGroups[0].id);
       }
 
       await getProjects();
     } catch (e) {
       console.error("Error when trying to fetch groups: ", e);
     }
-    setIsModalOpen(false);
   };
 
   useEffect(() => {
@@ -295,6 +364,48 @@ export default function UserProfile() {
     setIsModalOpen(false);
   };
 
+  const createNewGroup = async (groupName: string) => {
+    try {
+      const url = new URL("http://localhost:8081/group");
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: groupName }),
+      });
+      if (!response.ok) throw new Error("Failed to create group");
+      const newGroup = await response.json();
+      console.log("Created Group: ", newGroup);
+
+      const userId = localStorage.getItem("user_id");
+      if (userId && newGroup.id) {
+        const addUserUrl = new URL(
+          `http://localhost:8081/group/${newGroup.id}/users`,
+        );
+        await fetch(addUserUrl.toString(), {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId }),
+        });
+      }
+
+      await getUserGroups();
+    } catch (e) {
+      console.error("Error when trying to create new group: ", e);
+    }
+    setIsGroupModalOpen(false);
+  };
+
+  const filteredProjects =
+    selectedGroupId === "all"
+      ? projects
+      : projects.filter((project: any) => project.groupId === selectedGroupId);
+
   return (
     <div className="profile-page-container">
       {isModalOpen && (
@@ -304,6 +415,12 @@ export default function UserProfile() {
           onClose={() => setIsModalOpen(false)}
         />
       )}
+      {isGroupModalOpen && (
+        <GroupModal
+          onSave={(name) => createNewGroup(name)}
+          onClose={() => setIsGroupModalOpen(false)}
+        />
+      )}
       {/* Left Column */}
       <div className="profile-left-column">
         {/* Group Selector at top left */}
@@ -311,6 +428,7 @@ export default function UserProfile() {
           groups={groups}
           selectedGroupId={selectedGroupId}
           onSelect={(id) => setSelectedGroupId(id)}
+          onCreateGroupClick={() => setIsGroupModalOpen(true)}
         />
 
         {/* Dark Profile Header Card */}
@@ -365,7 +483,7 @@ export default function UserProfile() {
           </button>
         </div>
         <div className="projects-stack">
-          {projects.map((project) => (
+          {filteredProjects.map((project: any) => (
             <ProjectCardItem key={project.id} project={project} />
           ))}
         </div>

@@ -289,6 +289,47 @@
   font-size: 0.95rem;
 }
 
+.group-selector-icon.all {
+  background-color: var(--accent-bg);
+  color: var(--accent-light);
+}
+
+.group-selector-divider {
+  height: 1px;
+  background-color: var(--border-subtle);
+  margin: 4px 6px;
+}
+
+.group-selector-create-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: var(--weight-medium);
+  color: var(--accent-light);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.group-selector-create-btn:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.group-selector-create-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--accent-bg);
+  font-size: 1.2rem;
+  font-weight: var(--weight-semibold);
+}
+
 .section-heading-dark {
   font-size: 1.15rem;
   font-weight: var(--weight-bold);

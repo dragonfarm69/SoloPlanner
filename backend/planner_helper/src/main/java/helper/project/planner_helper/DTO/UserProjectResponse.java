@@ -10,13 +10,15 @@ public record UserProjectResponse(
         UUID id,
         String title,
         String description,
-        UUID ownerId) {
+        UUID ownerId,
+        UUID groupId) {
 
     public UserProjectResponse(ProjectResponseRecord record) {
-        this(record.id(), record.title(), record.description(), record.ownerId());
+        this(record.id(), record.title(), record.description(), record.ownerId(), record.groupId());
     }
 
     public UserProjectResponse(ProjectEntity entity) {
-        this(entity.getId(), entity.getTitle(), entity.getDescription(), entity.getOwner().getId());
+        this(entity.getId(), entity.getTitle(), entity.getDescription(), entity.getOwner().getId(),
+             entity.getGroup() != null ? entity.getGroup().getId() : null);
     }
 }

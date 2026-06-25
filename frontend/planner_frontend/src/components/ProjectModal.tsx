@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import "./TaskModal.css";
 import "./ProjectModal.css";
+import type { GroupData } from "../types";
 
 interface ProjectModalProps {
   project: ProjectFormData | null; // null = creating new project
@@ -14,12 +15,7 @@ export interface ProjectFormData {
   title: string;
   ownerId: string;
   description: string;
-  users: string[]; // usernames of participants
-}
-
-/** Return the first character of a username for the mini-avatar. */
-function avatarInitial(username: string): string {
-  return username.charAt(0).toUpperCase();
+  groupId: string;
 }
 
 export default function ProjectModal({
@@ -30,8 +26,8 @@ export default function ProjectModal({
 }: ProjectModalProps) {
   const [title, setTitle] = useState(project?.title ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
-  const [users, setUsers] = useState<string[]>(project?.users ?? []);
-  const [userInput, setUserInput] = useState("");
+  const [groupId, setGroupId] = useState(project?.groupId ?? "");
+  const [groups, setGroups] = useState<GroupData[]>([]);
 
   const titleRef = useRef<HTMLInputElement>(null);
   const isEditing = project !== null;
@@ -39,6 +35,29 @@ export default function ProjectModal({
   // Focus title on open
   useEffect(() => {
     titleRef.current?.focus();
+  }, []);
+
+  // Fetch groups
+  useEffect(() => {
+    async function fetchGroups() {
+      try {
+        const url = new URL(`http://localhost:8081/user/me/groups`);
+        const response = await fetch(url.toString(), {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setGroups(data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch groups", e);
+      }
+    }
+    fetchGroups();
   }, []);
 
   // Close on Escape
@@ -57,24 +76,9 @@ export default function ProjectModal({
       title: title.trim(),
       ownerId: localStorage.getItem("user_id") as string,
       description: description.trim(),
-      users,
+      groupId,
     });
-  }, [title, description, users, project, onSave]);
-
-  const handleAddUser = useCallback(() => {
-    const trimmed = userInput.trim();
-    if (trimmed && !users.includes(trimmed)) {
-      setUsers([...users, trimmed]);
-    }
-    setUserInput("");
-  }, [userInput, users]);
-
-  const handleRemoveUser = useCallback(
-    (username: string) => {
-      setUsers(users.filter((u) => u !== username));
-    },
-    [users],
-  );
+  }, [title, description, groupId, project, onSave]);
 
   return (
     <div className="modal-overlay" onClick={onClose} id="project-modal-overlay">
@@ -132,49 +136,33 @@ export default function ProjectModal({
             />
           </div>
 
-          {/* Participants / Users */}
+          {/* Associated Group */}
           <div className="form-group">
-            <label className="form-label" htmlFor="project-users">
-              Participants
+            <label className="form-label" htmlFor="project-group">
+              Associated Group
             </label>
-            <input
-              id="project-users"
-              className="form-input"
-              placeholder="Type a username and press Enter..."
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddUser();
-                }
+            <select
+              id="project-group"
+              className="form-select"
+              value={groupId}
+              onChange={(e) => setGroupId(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "var(--radius-md)",
+                backgroundColor: "var(--bg-input)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-primary)",
+                outline: "none",
               }}
-            />
-            <span className="form-hint">Press Enter to add a participant</span>
-            {users.length > 0 && (
-              <div className="form-users-display">
-                {users.map((username) => (
-                  <span key={username} className="form-user-chip">
-                    <span className="form-user-avatar">
-                      {avatarInitial(username)}
-                    </span>
-                    {username}
-                    <span
-                      className="form-user-remove"
-                      onClick={() => handleRemoveUser(username)}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Remove participant ${username}`}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleRemoveUser(username);
-                      }}
-                    >
-                      ✕
-                    </span>
-                  </span>
-                ))}
-              </div>
-            )}
+            >
+              <option value="">No Group (Personal Project)</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

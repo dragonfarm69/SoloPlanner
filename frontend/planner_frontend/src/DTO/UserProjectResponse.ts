@@ -3,4 +3,5 @@ export interface UserProjectResponse {
   title: string;
   description: string;
   ownerId: string;
+  groupId?: string;
 }
