@@ -28,9 +28,12 @@ import helper.project.planner_helper.DTO.TaskEditRequest;
 import helper.project.planner_helper.DTO.TaskPositionRequest;
 import helper.project.planner_helper.DTO.UserProjectResponse;
 import helper.project.planner_helper.DTO.Events.ColumnResponse;
+import helper.project.planner_helper.DTO.Events.TagRequest;
+import helper.project.planner_helper.DTO.Events.TagResponse;
 import helper.project.planner_helper.DTO.Events.TaskResponse;
 import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Services.ProjectService;
+import helper.project.planner_helper.Services.TagService;
 import helper.project.planner_helper.Services.TaskService;
 
 @RestController
@@ -38,10 +41,12 @@ import helper.project.planner_helper.Services.TaskService;
 public class ProjectHandler {
     private final TaskService taskService;
     private final ProjectService projectService;
+    private final TagService tagService;
 
-    public ProjectHandler(TaskService taskService, ProjectService projectService) {
+    public ProjectHandler(TaskService taskService, ProjectService projectService, TagService tagService) {
         this.taskService = taskService;
         this.projectService = projectService;
+        this.tagService = tagService;
     }
 
     @GetMapping
@@ -80,9 +85,9 @@ public class ProjectHandler {
     }
 
     @GetMapping("/{project_id}/{column_id}/{task_id}")
-    public List<TaskEntity> getTaskInformation(@PathVariable("project_id") UUID projectId,
+    public TaskResponse getTaskInformation(@PathVariable("project_id") String projectId,
             @PathVariable("column_id") String columnId, @PathVariable("task_id") String taskId) {
-        return null;
+        return this.taskService.getTask(projectId, columnId, taskId);
     }
 
     @PostMapping("/{project_id}/{column_id}/tasks")
@@ -93,13 +98,21 @@ public class ProjectHandler {
     }
 
     @GetMapping("/{project_id}/tags")
-    public void getTag(@PathVariable("project_id") String projectId,
-            @Validated @RequestBody ProjectTaskRequest request) {
+    public List<TagResponse> getTag(@PathVariable("project_id") String projectId) {
+        return this.tagService.getTags(projectId);
     }
 
     @PostMapping("/{project_id}/tags")
-    public void addTag(@PathVariable("project_id") String projectId,
-            @Validated @RequestBody ProjectTaskRequest request) {
+    public TagResponse addTag(@PathVariable("project_id") String projectId,
+            @Validated @RequestBody TagRequest request) {
+        return this.tagService.createTag(request, projectId);
+    }
+
+    @DeleteMapping("/{project_id}/tags/{tag_id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteTag(@PathVariable("project_id") String projectId,
+            @PathVariable("tag_id") String tagId) {
+        this.tagService.deleteTag(tagId);
     }
 
     @PostMapping

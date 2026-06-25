@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
                 @JsonSubTypes.Type(value = EventPayload.TaskCreatedEvent.class, name = "TASK_CREATED"),
                 @JsonSubTypes.Type(value = EventPayload.TaskMovedEvent.class, name = "TASK_MOVED"),
                 @JsonSubTypes.Type(value = EventPayload.TaskDeletedEvent.class, name = "TASK_DELETED"),
+                @JsonSubTypes.Type(value = EventPayload.TaskEditedEvent.class, name = "TASK_EDITED"),
                 // COLUMN
                 @JsonSubTypes.Type(value = EventPayload.ColumnCreatedEvent.class, name = "COLUMN_CREATED"),
                 @JsonSubTypes.Type(value = EventPayload.ColumnMovedEvent.class, name = "COLUMN_MOVED"),
@@ -18,12 +19,16 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
                 @JsonSubTypes.Type(value = EventPayload.ColumnDeletedEvent.class, name = "TAG_ADDED"),
 })
 public sealed interface EventPayload
-                permits EventPayload.TaskCreatedEvent, EventPayload.TaskMovedEvent, EventPayload.TaskDeletedEvent,
+                permits EventPayload.TaskCreatedEvent, EventPayload.TaskEditedEvent, EventPayload.TaskMovedEvent,
+                EventPayload.TaskDeletedEvent,
                 EventPayload.ColumnCreatedEvent, EventPayload.ColumnMovedEvent, EventPayload.ColumnDeletedEvent,
                 EventPayload.TagAddedEvent, EventPayload.TagCreatedEvent {
 
         // TASK
-        record TaskCreatedEvent(TaskResponse task) implements EventPayload {
+        record TaskCreatedEvent(TaskSummaryResponse task) implements EventPayload {
+        }
+
+        record TaskEditedEvent(TaskSummaryResponse task) implements EventPayload {
         }
 
         record TaskMovedEvent(String taskId, String columnId, String newOrder) implements EventPayload {

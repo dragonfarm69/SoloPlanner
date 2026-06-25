@@ -9,7 +9,7 @@ import {
   extractClosestEdge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import type { Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
-import type { Task, Priority } from "../types";
+import type { Task, Priority, Tag } from "../types";
 import { PRIORITY_CONFIG, LABEL_COLORS } from "../types";
 import "./TaskCard.css";
 
@@ -158,15 +158,15 @@ export default function TaskCard({
         )}
 
         {/* Labels */}
-        {task.labels.length > 0 && (
+        {task.labels && task.labels.length > 0 && (
           <div className="task-card-labels">
             {task.labels.map((label) => (
               <span
-                key={label}
+                key={label.id}
                 className="task-card-label"
-                style={{ background: getLabelColor(label) }}
+                style={{ background: getLabelColor(label.color) }}
               >
-                {label}
+                {label.name}
               </span>
             ))}
           </div>

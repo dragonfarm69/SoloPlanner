@@ -23,7 +23,9 @@ export function generateId(prefix: string = "item"): string {
 type BoardAction =
   | {
       type: "ADD_TASK";
-      payload: Omit<Task, "id" | "order" | "createdAt" | "updatedAt">;
+      payload: Omit<Task, "id" | "order" | "createdAt" | "updatedAt"> & {
+        id?: string;
+      };
     }
   | { type: "UPDATE_TASK"; payload: { id: string } & Partial<Task> }
   | { type: "DELETE_TASK"; payload: { id: string } }
@@ -68,7 +70,7 @@ function boardReducer(state: Board, action: BoardAction): Board {
       );
       const newTask: Task = {
         ...action.payload,
-        id: generateId("task"),
+        id: action.payload.id || generateId("task"),
         order: String(columnTasks.length),
         createdAt: now,
         updatedAt: now,

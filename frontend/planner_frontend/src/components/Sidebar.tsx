@@ -8,6 +8,8 @@ interface SidebarProps {
   completedTasks: number;
   filterPriority: Priority | null;
   onFilterPriority: (priority: Priority | null) => void;
+  activeTab: "board" | "tags";
+  onTabChange: (tab: "board" | "tags") => void;
 }
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
@@ -17,6 +19,8 @@ export default function Sidebar({
   completedTasks,
   filterPriority,
   onFilterPriority,
+  activeTab,
+  onTabChange,
 }: SidebarProps) {
   const activeTasks = totalTasks - completedTasks;
   const navigate = useNavigate();
@@ -40,7 +44,11 @@ export default function Sidebar({
       {/* Navigation */}
       <nav className="sidebar-nav" aria-label="Main navigation">
         <div className="sidebar-section-title">Planning</div>
-        <button className="sidebar-nav-item active" id="nav-board">
+        <button
+          className={`sidebar-nav-item ${activeTab === "board" ? "active" : ""}`}
+          id="nav-board"
+          onClick={() => onTabChange("board")}
+        >
           <span className="sidebar-nav-icon" aria-hidden="true">
             ⊞
           </span>
@@ -60,6 +68,16 @@ export default function Sidebar({
         </button>
 
         <div className="sidebar-section-title">Manage</div>
+        <button
+          className={`sidebar-nav-item ${activeTab === "tags" ? "active" : ""}`}
+          id="nav-tags"
+          onClick={() => onTabChange("tags")}
+        >
+          <span className="sidebar-nav-icon" aria-hidden="true">
+            🏷
+          </span>
+          Tags
+        </button>
         <button className="sidebar-nav-item" id="nav-archive" disabled>
           <span className="sidebar-nav-icon" aria-hidden="true">
             ▤

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { Task, Column, Priority } from "../types";
+import type { Task, Column, Priority, Tag } from "../types";
 import { PRIORITY_CONFIG, LABEL_COLORS } from "../types";
 import "./TaskModal.css";
 
@@ -18,9 +18,10 @@ export interface TaskFormData {
   description: string;
   userId: string;
   priority: Priority;
-  labels: string[];
+  tags: Tag[];
   columnId: string;
   deadline: string; // "" means no deadline chosen
+  isArchived: boolean;
 }
 
 interface UserSummaryData {
@@ -55,13 +56,22 @@ export default function TaskModal({
   const [priority, setPriority] = useState<Priority>(
     task?.priority ?? "medium",
   );
-  const [labels, setLabels] = useState<string[]>(task?.labels ?? []);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [columnId, setColumnId] = useState(task?.columnId ?? defaultColumnId);
   const [deadline, setDeadline] = useState(task?.deadline ?? "");
-  const [labelInput, setLabelInput] = useState("");
 
   const [users, setUsers] = useState<UserSummaryData[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
+
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
+
+  const [createdDate, setCreatedDate] = useState<string>("");
+  const [lastEdited, setLastEdited] = useState<string>("");
+  const [isArchived, setIsArchived] = useState<boolean>(
+    task?.isArchived ?? false,
+  );
 
   const titleRef = useRef<HTMLInputElement>(null);
   const isEditing = task !== null;
@@ -80,33 +90,123 @@ export default function TaskModal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  // Load users, tags, and full task details on component mount
+  useEffect(() => {
+    let active = true;
+
+    async function loadInitialData() {
+      setIsLoadingUsers(true);
+      setIsLoadingTags(true);
+
+      const usersUrl = `http://localhost:8081/projects/${projectId}/users`;
+      const tagsUrl = `http://localhost:8081/projects/${projectId}/tags`;
+      const taskUrl = task
+        ? `http://localhost:8081/projects/${projectId}/${task.columnId}/${task.id}`
+        : null;
+
+      try {
+        const promises: Promise<Response>[] = [
+          fetch(usersUrl, { credentials: "include" }),
+          fetch(tagsUrl, { credentials: "include" }),
+        ];
+        if (taskUrl) {
+          promises.push(fetch(taskUrl, { credentials: "include" }));
+        }
+
+        const responses = await Promise.all(promises);
+        const usersRes = responses[0];
+        const tagsRes = responses[1];
+        const taskRes = responses[2]; // undefined if taskUrl is null
+
+        if (!active) return;
+
+        if (usersRes.ok) {
+          const userData = await usersRes.json();
+          setUsers(userData);
+          if (task?.username) {
+            const matched = userData.find(
+              (u: UserSummaryData) => u.username === task.username,
+            );
+            if (matched) {
+              setSelectedUserId(matched.userId);
+            }
+          }
+        }
+
+        if (tagsRes.ok) {
+          const tagsData = await tagsRes.json();
+          setTags(tagsData);
+          if (task?.labels) {
+            setSelectedTags(task.labels);
+          }
+        }
+
+        if (taskRes && taskRes.ok) {
+          const taskData = await taskRes.json();
+          setCreatedDate(taskData.createdDate || "");
+          setLastEdited(taskData.lastEdited || "");
+          setIsArchived(taskData.isArchived || false);
+
+          // Sync with database content
+          if (taskData.title) setTitle(taskData.title);
+          if (taskData.description !== undefined)
+            setDescription(taskData.description ?? "");
+          if (taskData.priority)
+            setPriority(taskData.priority.toLowerCase() as Priority);
+          if (taskData.deadline) setDeadline(taskData.deadline.split("T")[0]);
+          if (taskData.tags) setSelectedTags(taskData.tags);
+        }
+      } catch (e) {
+        console.error("Error loading task details metadata:", e);
+      } finally {
+        if (active) {
+          setIsLoadingUsers(false);
+          setIsLoadingTags(false);
+        }
+      }
+    }
+
+    loadInitialData();
+
+    return () => {
+      active = false;
+    };
+  }, [projectId, task]);
+
   const handleSubmit = useCallback(() => {
     if (!title.trim() || !deadline) return;
+
+    console.log("selected tags: ", selectedTags);
 
     onSave({
       title: title.trim(),
       description: description.trim(),
       userId: selectedUserId,
       priority,
-      labels,
+      tags: selectedTags,
       columnId,
       deadline,
+      isArchived,
     });
-  }, [title, description, priority, labels, columnId, deadline, onSave]);
 
-  const handleAddLabel = useCallback(() => {
-    const trimmed = labelInput.trim();
-    if (trimmed && !labels.includes(trimmed)) {
-      setLabels([...labels, trimmed]);
-    }
-    setLabelInput("");
-  }, [labelInput, labels]);
+    onClose();
+  }, [
+    title,
+    description,
+    priority,
+    selectedTags,
+    columnId,
+    deadline,
+    onSave,
+    selectedUserId,
+    isArchived,
+  ]);
 
   const handleRemoveLabel = useCallback(
-    (label: string) => {
-      setLabels(labels.filter((l) => l !== label));
+    (tag: Tag) => {
+      setSelectedTags(selectedTags.filter((l) => l !== tag));
     },
-    [labels],
+    [selectedTags],
   );
 
   return (
@@ -218,43 +318,24 @@ export default function TaskModal({
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="task-deadline">
-                Assigned to
+              <label className="form-label" htmlFor="task-assignee">
+                Assigned to{" "}
+                {isLoadingUsers && <span className="spinner-inline" />}
               </label>
               <select
-                onClick={async () => {
-                  if (users.length > 0) {
-                    console.log("users isn't null: ", users);
-                    return;
-                  }
-
-                  //fetch all users
-                  try {
-                    // const projectId = ;
-                    const url = `http://localhost:8081/projects/${projectId}/users`;
-                    console.log("calling: ", url);
-
-                    const response = await fetch(url, {
-                      method: "GET",
-                      credentials: "include",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                    });
-
-                    const data = await response.json();
-                    console.log(data);
-                    setUsers(data);
-                    console.log(users);
-                  } catch (e) {
-                    console.error("Error when fetching users: ", e);
-                    return;
-                  }
-                }}
+                id="task-assignee"
+                className="form-select"
+                value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
+                disabled={isLoadingUsers}
               >
+                <option value="">
+                  {isLoadingUsers ? "Loading users..." : "Unassigned"}
+                </option>
                 {users.map((user) => (
-                  <option value={user.userId}>{user.username}</option>
+                  <option key={user.userId} value={user.userId}>
+                    {user.username}
+                  </option>
                 ))}
               </select>
             </div>
@@ -263,37 +344,48 @@ export default function TaskModal({
           {/* Labels */}
           <div className="form-group">
             <label className="form-label" htmlFor="task-labels">
-              Labels
+              Labels {isLoadingTags && <span className="spinner-inline" />}
             </label>
-            <input
+            <select
               id="task-labels"
-              className="form-input"
-              placeholder="Type a label and press Enter..."
-              value={labelInput}
-              onChange={(e) => setLabelInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddLabel();
+              className="form-select"
+              value=""
+              onChange={(e) => {
+                const tagId = e.target.value;
+                if (!tagId) return;
+                const tagToAdd = tags.find((t) => t.id === tagId);
+                if (tagToAdd && !selectedTags.some((t) => t.id === tagId)) {
+                  setSelectedTags([...selectedTags, tagToAdd]);
                 }
               }}
-            />
-            <span className="form-hint">Press Enter to add a label</span>
-            {labels.length > 0 && (
-              <div className="form-labels-display">
-                {labels.map((label) => (
+              disabled={isLoadingTags}
+            >
+              <option value="" disabled>
+                {isLoadingTags ? "Loading labels..." : "Select a label..."}
+              </option>
+              {tags
+                .filter((t) => !selectedTags.some((st) => st.id === t.id))
+                .map((tag) => (
+                  <option key={tag.id} value={tag.id}>
+                    {tag.name}
+                  </option>
+                ))}
+            </select>
+            {selectedTags.length > 0 && (
+              <div className="form-labels-display" style={{ marginTop: "8px" }}>
+                {selectedTags.map((label) => (
                   <span
-                    key={label}
+                    key={label.id}
                     className="form-label-chip"
-                    style={{ background: getLabelColor(label) }}
+                    style={{ background: getLabelColor(label.color) }}
                   >
-                    {label}
+                    {label.name}
                     <span
                       className="form-label-remove"
                       onClick={() => handleRemoveLabel(label)}
                       role="button"
                       tabIndex={0}
-                      aria-label={`Remove label ${label}`}
+                      aria-label={`Remove label ${label.name}`}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleRemoveLabel(label);
                       }}
@@ -305,6 +397,56 @@ export default function TaskModal({
               </div>
             )}
           </div>
+
+          {/* Archived */}
+          <div
+            className="form-group"
+            style={{ flexDirection: "row", alignItems: "center", gap: "10px" }}
+          >
+            <input
+              type="checkbox"
+              id="task-archived"
+              checked={isArchived}
+              onChange={(e) => setIsArchived(e.target.checked)}
+              style={{ width: "16px", height: "16px", cursor: "pointer" }}
+            />
+            <label
+              className="form-label"
+              htmlFor="task-archived"
+              style={{ cursor: "pointer", margin: 0 }}
+            >
+              Archive Task
+            </label>
+          </div>
+
+          {/* Metadata */}
+          {isEditing && (createdDate || lastEdited) && (
+            <div
+              className="task-modal-metadata"
+              style={{
+                display: "flex",
+                gap: "20px",
+                fontSize: "var(--text-xs)",
+                color: "var(--text-tertiary)",
+                borderTop: "1px solid var(--border-subtle)",
+                paddingTop: "12px",
+                marginTop: "12px",
+              }}
+            >
+              {createdDate && (
+                <span>
+                  <strong>Created:</strong>{" "}
+                  {new Date(createdDate).toLocaleString()}
+                </span>
+              )}
+              {lastEdited && (
+                <span>
+                  <strong>Last Edited:</strong>{" "}
+                  {new Date(lastEdited).toLocaleString()}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}

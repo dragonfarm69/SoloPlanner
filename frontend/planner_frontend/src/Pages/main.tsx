@@ -5,6 +5,7 @@ import { useStompMessages } from "../hooks/useStompMessages";
 import Sidebar from "../components/Sidebar";
 import BoardHeader from "../components/BoardHeader";
 import KanbanBoard from "./Kanban/KanbanBoard";
+import TagManagement from "../components/TagManagement";
 import TaskModal from "../components/TaskModal";
 import AiChatPanel from "../components/AiChatPanel";
 import type { Task, Priority, Column } from "../types";
@@ -18,6 +19,7 @@ export default function MainPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [filterPriority, setFilterPriority] = useState<Priority | null>(null);
+  const [activeTab, setActiveTab] = useState<"board" | "tags">("board");
 
   // ─── Modal State ────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,14 +72,15 @@ export default function MainPage() {
             title: data.title,
             description: data.description,
             userId: userId,
-            tagIds: null, //null for now
+            tagIds: data.tags.map((tag) => tag.id),
             deadline: data.deadline
               ? new Date(data.deadline).toISOString()
               : null,
             priority: data.priority.toUpperCase(),
+            isArchived: data.isArchived,
           };
 
-          const response = await fetch(url, {
+          await fetch(url, {
             method: "PATCH",
             credentials: "include",
             headers: {
@@ -85,15 +88,8 @@ export default function MainPage() {
             },
             body: JSON.stringify(payload),
           });
-
-          const response_data = await response.json();
-          console.log("DATA AFTER EDIT TASK: ", response_data);
-          if (response.status !== 201 && response.status !== 200) {
-            console.error("Server errror, failed to add task: ", response_data);
-            return;
-          }
         } catch (e) {
-          console.error("Error when trying to add task: ", e);
+          console.error("Error when trying to edit task: ", e);
           return;
         }
 
@@ -131,11 +127,12 @@ export default function MainPage() {
             title: data.title,
             description: data.description,
             userId: userId,
-            tags: null,
+            tagIds: data.tags.map((tag) => tag.id),
             deadline: data.deadline
               ? new Date(data.deadline).toISOString()
               : null,
             priority: data.priority.toUpperCase(),
+            isArchived: data.isArchived,
           };
 
           const response = await fetch(url, {
@@ -201,7 +198,7 @@ export default function MainPage() {
             title: t.title,
             description: t.description ?? "",
             priority: (t.priority?.toLowerCase() ?? "low") as Priority, // "HIGH" → "high"
-            labels: [], // not implemented yet
+            labels: t.tags ?? [],
             username: t.username,
             columnId: col.id, // inject from parent column
             order: t.order, // order of the task in column
@@ -242,12 +239,13 @@ export default function MainPage() {
           dispatch({
             type: "ADD_TASK",
             payload: {
+              id: data.task.id,
               title: data.task.title,
               description: data.task.description ?? "",
               priority: (data.task.priority?.toLowerCase() ??
                 "low") as Priority,
               username: data.task.username,
-              labels: [],
+              labels: data.task.tags ?? [],
               columnId: data.task.columnId,
               deadline: data.task.deadline
                 ? data.task.deadline.split("T")[0]
@@ -275,6 +273,7 @@ export default function MainPage() {
               description: data.task.description ?? "",
               priority: (data.task.priority?.toLowerCase() ??
                 "low") as Priority,
+              labels: data.task.tags ?? [],
               deadline: data.task.deadline
                 ? data.task.deadline.split("T")[0]
                 : undefined,
@@ -321,6 +320,8 @@ export default function MainPage() {
         completedTasks={completedTasks}
         filterPriority={filterPriority}
         onFilterPriority={setFilterPriority}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
       <main
@@ -331,23 +332,29 @@ export default function MainPage() {
           overflow: "hidden",
         }}
       >
-        <BoardHeader
-          taskCount={board.tasks.length}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onNewTask={handleNewTask}
-        />
+        {activeTab === "board" ? (
+          <>
+            <BoardHeader
+              taskCount={board.tasks.length}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onNewTask={handleNewTask}
+            />
 
-        <KanbanBoard
-          projectId={projectId}
-          columns={board.columns}
-          tasks={board.tasks}
-          dispatch={dispatch}
-          searchQuery={searchQuery}
-          filterPriority={filterPriority}
-          onEditTask={handleEditTask}
-          onAddTask={handleAddTaskToColumn}
-        />
+            <KanbanBoard
+              projectId={projectId}
+              columns={board.columns}
+              tasks={board.tasks}
+              dispatch={dispatch}
+              searchQuery={searchQuery}
+              filterPriority={filterPriority}
+              onEditTask={handleEditTask}
+              onAddTask={handleAddTaskToColumn}
+            />
+          </>
+        ) : (
+          <TagManagement projectId={projectId!} />
+        )}
       </main>
 
       {/* Task Modal */}

@@ -1,7 +1,11 @@
 package helper.project.planner_helper.Services;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import javax.swing.text.html.HTML.Tag;
+import javax.swing.text.html.parser.Entity;
 
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -12,6 +16,7 @@ import helper.project.planner_helper.DTO.TaskEditRequest;
 import helper.project.planner_helper.DTO.TaskPositionRequest;
 import helper.project.planner_helper.DTO.Events.EventPayload;
 import helper.project.planner_helper.DTO.Events.TaskResponse;
+import helper.project.planner_helper.DTO.Events.TaskSummaryResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TagEntity;
 import helper.project.planner_helper.Database.TaskColumn;
@@ -49,6 +54,16 @@ public class TaskService {
         return this.taskRepository.findTaskByUserId(userId);
     }
 
+    public TaskResponse getTask(String projectId, String columnId, String taskId) {
+        UUID taskUUID = UUID.fromString(taskId);
+
+        TaskEntity taskEntity = this.taskRepository.findById(taskUUID)
+                .orElseThrow(() -> new RuntimeException("Task not found " + taskId));
+
+        TaskResponse task = EntityMapper.mapToTaskResponse(taskEntity);
+        return task;
+    }
+
     public TaskEntity createTask(ProjectTaskRequest request, String projectId, String columnId) {
         UUID projectUUID = UUID.fromString(projectId);
         UUID columnUUID = UUID.fromString(columnId);
@@ -79,10 +94,24 @@ public class TaskService {
             task.setOrder(newOrder);
         }
 
+        // find all the tags and set them to task
+        List<TagEntity> tags = new ArrayList<>();
+
+        if (request.tagIds() != null) {
+            for (String tagId : request.tagIds()) {
+                UUID tagUuid = UUID.fromString(tagId);
+                TagEntity tag = this.tagRepository.findById(tagUuid)
+                        .orElseThrow(() -> new RuntimeException("This tag does not exists: " + tagId));
+                tags.add(tag);
+            }
+        }
+
+        task.setTags(tags);
+
         TaskEntity createdTask = this.taskRepository.save(task);
 
         // broad cast the event
-        TaskResponse response = EntityMapper.mapToTaskResponse(createdTask);
+        TaskSummaryResponse response = EntityMapper.mapToTaskSummaryResponse(createdTask);
         EventPayload payload = new EventPayload.TaskCreatedEvent(response);
 
         String destination = "/topic/projects/" + projectId;
@@ -152,7 +181,16 @@ public class TaskService {
             task.setUser(user);
         }
 
-        return this.taskRepository.save(task);
+        TaskEntity editedTask = this.taskRepository.save(task);
+
+        // broad cast the event
+        TaskSummaryResponse response = EntityMapper.mapToTaskSummaryResponse(editedTask);
+        EventPayload payload = new EventPayload.TaskEditedEvent(response);
+
+        String destination = "/topic/projects/" + projectId;
+        System.out.println("SENDING TO " + destination);
+        this.mesageTemplate.convertAndSend(destination, payload);
+        return editedTask;
     }
 
     public void moveTask(String taskId, String projectId, String columnId, TaskPositionRequest request) {

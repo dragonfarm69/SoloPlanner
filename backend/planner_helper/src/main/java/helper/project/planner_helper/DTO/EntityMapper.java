@@ -7,6 +7,7 @@ import java.util.UUID;
 import helper.project.planner_helper.DTO.Events.ColumnResponse;
 import helper.project.planner_helper.DTO.Events.TagResponse;
 import helper.project.planner_helper.DTO.Events.TaskResponse;
+import helper.project.planner_helper.DTO.Events.TaskSummaryResponse;
 import helper.project.planner_helper.Database.ConversationEntity;
 import helper.project.planner_helper.Database.MessageEntity;
 import helper.project.planner_helper.Database.ProjectEntity;
@@ -17,22 +18,52 @@ import helper.project.planner_helper.Database.UserEntity;
 
 public class EntityMapper {
     public static TaskResponse mapToTaskResponse(TaskEntity task) {
+        List<TagResponse> tagResponses = new ArrayList<>();
+        if (task.getTags() != null) {
+            for (TagEntity tag : task.getTags()) {
+                TagResponse response = mapToTagResponses(tag);
+                tagResponses.add(response);
+            }
+        }
         return new TaskResponse(
-                task.getId(),
+                task.getId().toString(),
                 task.getTitle(),
                 task.getDescription(),
                 task.getPriority() != null ? task.getPriority().name() : null,
                 task.getOrder(),
                 task.getColumn().getId().toString(),
                 task.getUser().getUsername(),
-                task.getDeadline());
+                tagResponses,
+                task.getDeadline(),
+                task.getCreatedDate(),
+                task.getLastEdited(),
+                task.getIsArchived());
+    }
+
+    public static TaskSummaryResponse mapToTaskSummaryResponse(TaskEntity task) {
+        List<TagResponse> tagResponses = new ArrayList<>();
+        if (task.getTags() != null) {
+            for (TagEntity tag : task.getTags()) {
+                TagResponse response = mapToTagResponses(tag);
+                tagResponses.add(response);
+            }
+        }
+        return new TaskSummaryResponse(
+                task.getId().toString(),
+                task.getTitle(),
+                task.getPriority() != null ? task.getPriority().name() : null,
+                task.getOrder(),
+                task.getColumn().getId().toString(),
+                task.getUser().getUsername(),
+                task.getDeadline(),
+                tagResponses);
     }
 
     public static ColumnResponse mapToColumnResponse(TaskColumn column) {
-        List<TaskResponse> taskReponses = new ArrayList<TaskResponse>();
+        List<TaskSummaryResponse> taskReponses = new ArrayList<TaskSummaryResponse>();
         if (column.getTasks() != null) {
             for (TaskEntity task : column.getTasks()) {
-                TaskResponse taskMapped = mapToTaskResponse(task);
+                TaskSummaryResponse taskMapped = mapToTaskSummaryResponse(task);
                 taskReponses.add(taskMapped);
             }
         }

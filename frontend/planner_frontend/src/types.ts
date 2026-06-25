@@ -5,13 +5,14 @@ export interface Task {
   title: string;
   description: string;
   priority: Priority;
-  labels: string[];
+  labels: Tag[];
   columnId: string;
   username: string;
   order: string;
   createdAt: number;
   updatedAt: number;
   deadline?: string; // ISO date string e.g. "2026-06-30", optional
+  isArchived?: boolean;
 }
 
 export interface Column {
@@ -72,4 +73,10 @@ export interface UserProfileData {
   lastName: string;
   createdDate: string;
   tasksCompleted: number;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
 }

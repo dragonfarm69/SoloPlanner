@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import helper.project.planner_helper.DTO.EntityMapper;
+import helper.project.planner_helper.DTO.Events.TagRequest;
 import helper.project.planner_helper.DTO.Events.TagResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TagEntity;
@@ -23,15 +24,25 @@ public class TagService {
         this.projectRepository = projectRepository;
     }
 
-    public void createTag(String projectId) {
+    public TagResponse createTag(TagRequest request, String projectId) {
         UUID projectUUID = UUID.fromString(projectId);
         TagEntity tag = new TagEntity();
+        tag.setName(request.name());
+        tag.setColor(request.color());
 
         ProjectEntity projectEntity = this.projectRepository.findById(projectUUID)
                 .orElseThrow(() -> new RuntimeException("Project not found " + projectId));
         tag.setProject(projectEntity);
 
-        tagRepository.save(tag);
+        TagEntity createdTag = tagRepository.save(tag);
+        TagResponse response = EntityMapper.mapToTagResponses(createdTag);
+
+        return response;
+    }
+
+    public void deleteTag(String tagId) {
+        UUID tagUUID = UUID.fromString(tagId);
+        tagRepository.deleteById(tagUUID);
     }
 
     public List<TagResponse> getTags(String projectId) {
@@ -43,6 +54,7 @@ public class TagService {
             TagResponse tagResponse = EntityMapper.mapToTagResponses(tag);
             tagResponses.add(tagResponse);
         }
+
         return tagResponses;
     }
 }

@@ -51,7 +51,6 @@ export default function KanbanBoard({
   const sortedColumns = [...columns].sort((a, b) =>
     a.order.localeCompare(b.order),
   );
-  console.log("SORTED: ", sortedColumns);
 
   /** Filter tasks by search and priority, then group by column */
   function getFilteredTasks(columnId: string): Task[] {
@@ -62,9 +61,9 @@ export default function KanbanBoard({
           const q = searchQuery.toLowerCase();
           const matchesTitle = t.title.toLowerCase().includes(q);
           const matchesDesc = t.description.toLowerCase().includes(q);
-          const matchesLabel = t.labels.some((l) =>
-            l.toLowerCase().includes(q),
-          );
+          const matchesLabel = t.labels?.some((l) =>
+            l.name.toLowerCase().includes(q),
+          ) ?? false;
           if (!matchesTitle && !matchesDesc && !matchesLabel) return false;
         }
         if (filterPriority && t.priority !== filterPriority) return false;
