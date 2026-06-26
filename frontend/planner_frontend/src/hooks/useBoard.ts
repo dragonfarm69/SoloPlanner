@@ -33,7 +33,10 @@ type BoardAction =
       type: "MOVE_TASK";
       payload: { taskId: string; toColumnId: string; newOrder: string };
     }
-  | { type: "ADD_COLUMN"; payload: { title: string; color: string } }
+  | {
+      type: "ADD_COLUMN";
+      payload: { id: string; title: string; color: string };
+    }
   | { type: "UPDATE_COLUMN"; payload: { id: string } & Partial<Column> }
   | { type: "DELETE_COLUMN"; payload: { id: string } }
   | {
@@ -110,7 +113,7 @@ function boardReducer(state: Board, action: BoardAction): Board {
 
     case "ADD_COLUMN": {
       const newColumn: Column = {
-        id: generateId("col"),
+        id: action.payload.id || generateId("col"),
         title: action.payload.title,
         color: action.payload.color,
         order: String(state.columns.length),

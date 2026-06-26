@@ -17,7 +17,7 @@ import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Services.GroupService;
 
 @RestController
-@RequestMapping("/group")
+@RequestMapping("/groups")
 public class GroupHandler {
 
     private final GroupService groupService;

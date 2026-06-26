@@ -61,9 +61,8 @@ export default function KanbanBoard({
           const q = searchQuery.toLowerCase();
           const matchesTitle = t.title.toLowerCase().includes(q);
           const matchesDesc = t.description.toLowerCase().includes(q);
-          const matchesLabel = t.labels?.some((l) =>
-            l.name.toLowerCase().includes(q),
-          ) ?? false;
+          const matchesLabel =
+            t.labels?.some((l) => l.name.toLowerCase().includes(q)) ?? false;
           if (!matchesTitle && !matchesDesc && !matchesLabel) return false;
         }
         if (filterPriority && t.priority !== filterPriority) return false;
@@ -76,9 +75,7 @@ export default function KanbanBoard({
     const title = newColumnTitle.trim();
     if (!title) return;
 
-    //
     try {
-      // const projectId = ;
       const url = `http://localhost:8081/projects/${projectId}/columns`;
 
       //temp safe guard
@@ -110,8 +107,6 @@ export default function KanbanBoard({
       console.error("Error when creating new column: ", e);
       return;
     }
-
-    dispatch({ type: "ADD_COLUMN", payload: { title, color: newColumnColor } });
     setNewColumnTitle("");
     setNewColumnColor(COLUMN_COLORS[0]);
     setIsAddingColumn(false);

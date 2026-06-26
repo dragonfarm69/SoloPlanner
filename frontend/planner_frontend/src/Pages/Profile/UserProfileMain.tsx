@@ -1,262 +1,14 @@
 import "./UserProfile.css";
-import type { GroupData, UserProfileData } from "../../types";
+import type { GroupData } from "../../types";
 import { ProjectCardItem } from "../../components/Projectcard";
 import { useEffect, useState } from "react";
 import type { UserProjectResponse } from "../../DTO/UserProjectResponse";
 import ProjectModal, {
   type ProjectFormData,
 } from "../../components/ProjectModal";
-
-// Helper components for modularity and readability
-function LogoIcon() {
-  return (
-    <div className="profile-logo-container">
-      <svg
-        className="profile-logo"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <rect
-          x="5"
-          y="5"
-          width="14"
-          height="14"
-          rx="1"
-          transform="rotate(45 12 12)"
-        />
-        <circle cx="12" cy="12" r="2.5" />
-      </svg>
-    </div>
-  );
-}
-
-function renderGroupIcon(type: string) {
-  switch (type) {
-    case "all":
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          width="18"
-          height="18"
-        >
-          <rect x="3" y="3" width="7" height="7" />
-          <rect x="14" y="3" width="7" height="7" />
-          <rect x="14" y="14" width="7" height="7" />
-          <rect x="3" y="14" width="7" height="7" />
-        </svg>
-      );
-    default:
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          width="18"
-          height="18"
-        >
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      );
-  }
-}
-
-interface GroupSelectorProps {
-  groups: GroupData[];
-  selectedGroupId: string;
-  onSelect: (id: string) => void;
-  onCreateGroupClick: () => void;
-}
-
-function GroupSelector({
-  groups,
-  selectedGroupId,
-  onSelect,
-  onCreateGroupClick,
-}: GroupSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const selectedGroup =
-    selectedGroupId === "all"
-      ? { id: "all", name: "All Groups", iconType: "all" }
-      : groups.find((g) => g.id === selectedGroupId) || {
-          id: "all",
-          name: "All Groups",
-          iconType: "all",
-        };
-
-  return (
-    <div className="group-selector-container">
-      <button
-        className="group-selector-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-      >
-        <div className="group-selector-left">
-          <span className={`group-selector-icon ${selectedGroup.iconType}`}>
-            {renderGroupIcon(selectedGroup.iconType)}
-          </span>
-          <span className="group-selector-name">{selectedGroup.name}</span>
-        </div>
-        <span className={`group-selector-caret ${isOpen ? "open" : ""}`}>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            width="14"
-            height="14"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </span>
-      </button>
-
-      {isOpen && (
-        <div className="group-selector-dropdown" role="listbox">
-          <div
-            role="option"
-            aria-selected={selectedGroupId === "all"}
-            className={`group-selector-item ${
-              selectedGroupId === "all" ? "selected" : ""
-            }`}
-            onClick={() => {
-              onSelect("all");
-              setIsOpen(false);
-            }}
-          >
-            <div className="group-selector-item-left">
-              <span className="group-selector-icon all">
-                {renderGroupIcon("all")}
-              </span>
-              <span className="group-selector-item-name">Show All</span>
-            </div>
-            {selectedGroupId === "all" && (
-              <span className="group-selector-check">✓</span>
-            )}
-          </div>
-
-          <div className="group-selector-divider"></div>
-
-          {groups.map((group) => (
-            <div
-              key={group.id}
-              role="option"
-              aria-selected={group.id === selectedGroupId}
-              className={`group-selector-item ${
-                group.id === selectedGroupId ? "selected" : ""
-              }`}
-              onClick={() => {
-                onSelect(group.id);
-                setIsOpen(false);
-              }}
-            >
-              <div className="group-selector-item-left">
-                <span className={`group-selector-icon ${group.iconType}`}>
-                  {renderGroupIcon(group.iconType)}
-                </span>
-                <span className="group-selector-item-name">{group.name}</span>
-              </div>
-              {group.id === selectedGroupId && (
-                <span className="group-selector-check">✓</span>
-              )}
-            </div>
-          ))}
-
-          <div className="group-selector-divider"></div>
-
-          <button
-            className="group-selector-create-btn"
-            onClick={() => {
-              onCreateGroupClick();
-              setIsOpen(false);
-            }}
-          >
-            <span className="group-selector-create-icon">+</span>
-            <span>Create Group</span>
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface GroupModalProps {
-  onSave: (groupName: string) => void;
-  onClose: () => void;
-}
-
-function GroupModal({ onSave, onClose }: GroupModalProps) {
-  const [groupName, setGroupName] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (groupName.trim()) {
-      onSave(groupName.trim());
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label="Create group"
-      >
-        <div className="modal-header">
-          <h2 className="modal-title">Create New Group</h2>
-          <button
-            className="modal-close"
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="modal-body">
-          <div className="form-group">
-            <label className="form-label" htmlFor="group-name-input">
-              Group Name
-            </label>
-            <input
-              type="text"
-              id="group-name-input"
-              className="form-input"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              placeholder="e.g., Development Team"
-              autoFocus
-              required
-            />
-          </div>
-        </div>
-        <div className="modal-footer">
-          <div className="modal-footer-right">
-            <button className="btn-modal-cancel" onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              className="btn-modal-save"
-              onClick={handleSubmit}
-              disabled={!groupName.trim()}
-            >
-              Create Group
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import LogoIcon from "./LogoIcon";
+import GroupSelector from "./GroupSelector";
+import GroupModal from "./GroupModal";
 
 export default function UserProfile() {
   //TODO: replace this with user data
@@ -362,7 +114,7 @@ export default function UserProfile() {
 
   const createNewGroup = async (groupName: string) => {
     try {
-      const url = new URL("http://localhost:8081/group");
+      const url = new URL("http://localhost:8081/groups");
       const response = await fetch(url.toString(), {
         method: "POST",
         credentials: "include",
@@ -378,7 +130,7 @@ export default function UserProfile() {
       const userId = localStorage.getItem("user_id");
       if (userId && newGroup.id) {
         const addUserUrl = new URL(
-          `http://localhost:8081/group/${newGroup.id}/users`,
+          `http://localhost:8081/groups/${newGroup.id}/users`,
         );
         await fetch(addUserUrl.toString(), {
           method: "POST",
