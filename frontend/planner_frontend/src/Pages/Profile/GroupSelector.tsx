@@ -134,15 +134,6 @@ export default function GroupSelector({
                 </span>
                 <span className="group-selector-item-name">{group.name}</span>
               </div>
-              {group.id === selectedGroupId && (
-                <span className="group-selector-check">✓</span>
-              )}
-
-              <div className="">
-                <button>add</button>
-                <button>edit</button>
-                <button>remove</button>
-              </div>
             </div>
           ))}
 
@@ -156,7 +147,7 @@ export default function GroupSelector({
             }}
           >
             <span className="group-selector-create-icon">+</span>
-            <span>Create Group</span>
+            <span>Create/Join Group</span>
           </button>
         </div>
       )}
