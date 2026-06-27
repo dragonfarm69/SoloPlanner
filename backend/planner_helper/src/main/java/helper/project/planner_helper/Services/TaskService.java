@@ -50,8 +50,15 @@ public class TaskService {
         this.mesageTemplate = mesageTemplate;
     }
 
-    public List<TaskEntity> getUserTasks(UUID userId) {
-        return this.taskRepository.findTaskByUserId(userId);
+    public List<TaskSummaryResponse> getUserTasks(UUID userId) {
+        List<TaskEntity> tasks = this.taskRepository.findTaskByUserId(userId);
+        List<TaskSummaryResponse> responses = new ArrayList<>();
+        for (TaskEntity task : tasks) {
+            TaskSummaryResponse taskResponse = EntityMapper.mapToTaskSummaryResponse(task);
+            responses.add(taskResponse);
+        }
+
+        return responses;
     }
 
     public TaskResponse getTask(String projectId, String columnId, String taskId) {

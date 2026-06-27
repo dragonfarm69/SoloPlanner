@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import type { GroupData } from "../types";
 import GroupSelector from "../Pages/Profile/GroupSelector";
 import "../Pages/Profile/UserProfile.css";
@@ -146,12 +146,34 @@ export default function AppSidebar({
         />
 
         <nav className="sidebar-nav" aria-label="Main navigation">
-          <button className="sidebar-nav-item active" aria-current="page">
+          {/* Projects — navigates to / */}
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `sidebar-nav-item${isActive ? " active" : ""}`
+            }
+          >
             <span className="sidebar-nav-icon">
               <IconProjects />
             </span>
             Projects
-          </button>
+          </NavLink>
+
+          {/* Calendar — navigates to /calendar */}
+          <NavLink
+            to="/calendar"
+            className={({ isActive }) =>
+              `sidebar-nav-item${isActive ? " active" : ""}`
+            }
+          >
+            <span className="sidebar-nav-icon">
+              <IconGroups />
+            </span>
+            Calendar
+          </NavLink>
+
+          {/* Not yet implemented */}
           <button
             className="sidebar-nav-item disabled"
             disabled

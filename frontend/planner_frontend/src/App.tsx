@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "./Pages/AppLayout";
+import ProjectsView from "./Pages/Profile/ProjectsView";
+import CalendarPage from "./Pages/CalendarPage";
 import MainPage from "./Pages/main";
-import UserProfile from "./Pages/Profile/UserProfileMain";
 import AuthPage from "./Pages/Authorization/Auth";
 import { useEffect } from "react";
 
@@ -33,9 +35,15 @@ export default function App() {
     <>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<UserProfile />} />
+          {/* Standalone routes — no AppSidebar */}
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/projects/:projectId" element={<MainPage />} />
+
+          {/* Layout route — AppSidebar always mounted, child renders in Outlet */}
+          <Route element={<AppLayout />}>
+            <Route index element={<ProjectsView />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </>
