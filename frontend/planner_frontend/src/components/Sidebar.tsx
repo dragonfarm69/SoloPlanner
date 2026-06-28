@@ -31,7 +31,7 @@ export default function Sidebar({
       <div
         className="sidebar-logo"
         onClick={() => {
-          navigate("/profile");
+          navigate("/");
         }}
       >
         <div className="sidebar-logo-icon" aria-hidden="true"></div>

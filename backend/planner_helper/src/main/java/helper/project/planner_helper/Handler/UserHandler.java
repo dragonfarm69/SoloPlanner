@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.GroupResponse;
+import helper.project.planner_helper.DTO.TaskEvent;
 import helper.project.planner_helper.DTO.UserRequestRecord;
 import helper.project.planner_helper.DTO.UserResponse;
 import helper.project.planner_helper.DTO.Events.TaskSummaryResponse;
@@ -100,7 +101,7 @@ public class UserHandler {
     }
 
     @GetMapping("/me/tasks")
-    public ResponseEntity<List<TaskSummaryResponse>> getUserTasks(
+    public ResponseEntity<List<TaskEvent>> getUserTasks(
             @CookieValue(name = "access_token") String accessToken) {
         String[] chunks = accessToken.split("\\.");
         Base64.Decoder decoder = Base64.getUrlDecoder();
@@ -112,7 +113,7 @@ public class UserHandler {
             });
             String userId = (String) payloadMap.get("sub");
             UserEntity user = this.userService.findUser(userId);
-            List<TaskSummaryResponse> tasks = this.taskService.getUserTasks(user.getId());
+            List<TaskEvent> tasks = this.taskService.getUserTasks(user.getId());
             return ResponseEntity.ok(tasks);
         } catch (Exception e) {
             throw new RuntimeException("Failed to decode token and fetch groups", e);

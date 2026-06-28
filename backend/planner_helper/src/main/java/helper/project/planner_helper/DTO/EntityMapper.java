@@ -60,6 +60,26 @@ public class EntityMapper {
                 tagResponses);
     }
 
+    public static TaskEvent mapToTaskEvent(TaskEntity task) {
+        List<TagResponse> tagResponses = new ArrayList<>();
+        if (task.getTags() != null) {
+            for (TagEntity tag : task.getTags()) {
+                TagResponse response = mapToTagResponses(tag);
+                tagResponses.add(response);
+            }
+        }
+
+        return new TaskEvent(
+                task.getId().toString(),
+                task.getTitle(),
+                task.getPriority() != null ? task.getPriority().name() : null,
+                task.getDeadline().toString(),
+                tagResponses,
+                task.getProject().getTitle(),
+                task.getProject().getId().toString(),
+                task.getDescription());
+    }
+
     public static ColumnResponse mapToColumnResponse(TaskColumn column) {
         List<TaskSummaryResponse> taskReponses = new ArrayList<TaskSummaryResponse>();
         if (column.getTasks() != null) {

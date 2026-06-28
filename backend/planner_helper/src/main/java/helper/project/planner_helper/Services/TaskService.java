@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.ProjectTaskRequest;
 import helper.project.planner_helper.DTO.TaskEditRequest;
+import helper.project.planner_helper.DTO.TaskEvent;
 import helper.project.planner_helper.DTO.TaskPositionRequest;
 import helper.project.planner_helper.DTO.Events.EventPayload;
 import helper.project.planner_helper.DTO.Events.TaskResponse;
@@ -50,11 +51,11 @@ public class TaskService {
         this.mesageTemplate = mesageTemplate;
     }
 
-    public List<TaskSummaryResponse> getUserTasks(UUID userId) {
+    public List<TaskEvent> getUserTasks(UUID userId) {
         List<TaskEntity> tasks = this.taskRepository.findTaskByUserId(userId);
-        List<TaskSummaryResponse> responses = new ArrayList<>();
+        List<TaskEvent> responses = new ArrayList<>();
         for (TaskEntity task : tasks) {
-            TaskSummaryResponse taskResponse = EntityMapper.mapToTaskSummaryResponse(task);
+            TaskEvent taskResponse = EntityMapper.mapToTaskEvent(task);
             responses.add(taskResponse);
         }
 

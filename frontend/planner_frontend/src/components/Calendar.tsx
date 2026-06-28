@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import "./Calendar.css";
+import { LABEL_COLORS, PRIORITY_CONFIG, type Priority } from "../types";
 
 /* ──────────────────────────────────────────────────────────
    Types
@@ -10,16 +11,25 @@ export type CalendarEventType = "task" | "deadline" | "meeting" | "release";
 export interface CalendarEvent {
   id: string;
   title: string;
+  projectName: string;
   date: string; // ISO date string "YYYY-MM-DD"
   type: CalendarEventType;
   description?: string;
 }
 
+export interface CalendarTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface CalendarDeadline {
   id: string;
   title: string;
+  priority: string;
+  projectName: string;
   date: string; // ISO date string "YYYY-MM-DD"
-  tag: "CRITICAL" | "RELEASE" | "MEETING" | "TASK";
+  tags: CalendarTag[];
   description?: string;
 }
 
@@ -97,9 +107,12 @@ function buildCalendarGrid(
    ────────────────────────────────────────────────────────── */
 
 function EventBadge({ event }: { event: CalendarEvent }) {
+  const now = new Date();
+  const todayISO = toISODate(now.getFullYear(), now.getMonth(), now.getDate());
+  const isPast = todayISO > event.date;
   return (
     <span
-      className={`cal-event-badge cal-event-${event.type}`}
+      className={`cal-event-badge cal-event-${isPast ? "deadline-past" : "deadline"}`}
       title={event.title}
     >
       {event.title}
@@ -113,22 +126,48 @@ function EventBadge({ event }: { event: CalendarEvent }) {
 
 function DeadlineCard({ item }: { item: CalendarDeadline }) {
   const dateObj = new Date(item.date);
-  const formatted = `${MONTH_NAMES[dateObj.getMonth()].slice(0, 3)} ${dateObj.getDate()}`;
+  const formatted = `${MONTH_NAMES[dateObj.getMonth()]} ${dateObj.getDate()}`;
+  const priorityKey = (item.priority || "").toLowerCase() as Priority;
+  const priority = PRIORITY_CONFIG[priorityKey] || PRIORITY_CONFIG["low"];
+
+  function getLabelColor(label: string): string {
+    let hash = 0;
+    for (let i = 0; i < label.length; i++) {
+      hash = label.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return LABEL_COLORS[Math.abs(hash) % LABEL_COLORS.length];
+  }
 
   return (
     <div className="cal-deadline-card">
       <div className="cal-deadline-card-top">
         <span
-          className={`cal-deadline-tag cal-deadline-tag-${item.tag.toLowerCase()}`}
+          className="cal-deadline-priority"
+          style={{ color: priority.color, background: priority.bg }}
         >
-          {item.tag}
+          {item.priority.toUpperCase()}
         </span>
         <span className="cal-deadline-date">{formatted}</span>
       </div>
-      <p className="cal-deadline-title">{item.title}</p>
+      <div className="cal-deadline-project">
+        {item.projectName.toUpperCase()}
+      </div>
+      <h4 className="cal-deadline-title">{item.title}</h4>
       {item.description && (
         <p className="cal-deadline-desc">{item.description}</p>
       )}
+      <div className="cal-stat-labels">
+        {item.tags &&
+          item.tags.map((tag) => (
+            <span
+              className="cal-stat-label"
+              key={tag.id}
+              style={{ background: getLabelColor(tag.color) }}
+            >
+              {tag.name}
+            </span>
+          ))}
+      </div>
     </div>
   );
 }

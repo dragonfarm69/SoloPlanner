@@ -27,6 +27,7 @@ export default function CalendarPage() {
         const fetchedEvents: CalendarEvent[] = data.map((g: any) => ({
           id: g.id,
           title: g.title,
+          projectName: g.projectName,
           date: g.deadline ? g.deadline.split("T")[0] : "",
           type: "task",
         }));
@@ -36,12 +37,14 @@ export default function CalendarPage() {
         const fetchedDeadlines: CalendarDeadline[] = data.map((g: any) => ({
           id: g.id,
           title: g.title,
+          priority: g.priority,
+          projectName: g.projectName,
           date: g.deadline ? g.deadline.split("T")[0] : "",
-          tag: "TASK",
+          tags: g.tags || [],
         }));
         setDeadline(fetchedDeadlines);
 
-        console.log("FETCHED: ", fetchedEvents);
+        console.log("FETCHED: ", fetchedDeadlines);
       }
     } catch (e) {
       console.error("Error fetching groups:", e);
