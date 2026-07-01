@@ -17,12 +17,20 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
                 // TAG
                 @JsonSubTypes.Type(value = EventPayload.ColumnCreatedEvent.class, name = "TAG_CREATED"),
                 @JsonSubTypes.Type(value = EventPayload.ColumnDeletedEvent.class, name = "TAG_ADDED"),
+
+                // AI CHAT
+                @JsonSubTypes.Type(value = EventPayload.AIMessage.class, name = "AI_CHAT"),
+
+                // CHAT
+                @JsonSubTypes.Type(value = EventPayload.ChatMessage.class, name = "CHAT_ROOM_CREATED"),
+                @JsonSubTypes.Type(value = EventPayload.ChatMessage.class, name = "CHAT_ROOM"),
 })
 public sealed interface EventPayload
                 permits EventPayload.TaskCreatedEvent, EventPayload.TaskEditedEvent, EventPayload.TaskMovedEvent,
                 EventPayload.TaskDeletedEvent,
                 EventPayload.ColumnCreatedEvent, EventPayload.ColumnMovedEvent, EventPayload.ColumnDeletedEvent,
-                EventPayload.TagAddedEvent, EventPayload.TagCreatedEvent {
+                EventPayload.TagAddedEvent, EventPayload.TagCreatedEvent, EventPayload.AIMessage,
+                EventPayload.ChatMessage, EventPayload.ChatRoomCreated {
 
         // TASK
         record TaskCreatedEvent(TaskSummaryResponse task) implements EventPayload {
@@ -58,6 +66,18 @@ public sealed interface EventPayload
         }
 
         record TagAddedEvent(String tagId, String taskId) implements EventPayload {
+
+        }
+
+        record AIMessage(String content) implements EventPayload {
+
+        }
+
+        record ChatRoomCreated(String content) implements EventPayload {
+
+        }
+
+        record ChatMessage(String content) implements EventPayload {
 
         }
 }

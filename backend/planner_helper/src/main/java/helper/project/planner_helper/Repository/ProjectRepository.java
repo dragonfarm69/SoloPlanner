@@ -22,4 +22,7 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, UUID> {
 
         @Query("SELECT p.users FROM ProjectEntity p WHERE p.id = :projectId")
         List<UserEntity> getUsersInProject(@Param("projectId") UUID projectId);
+
+        @Query("SELECT p FROM ProjectEntity p LEFT JOIN FETCH p.columns WHERE p.id = :id")
+        Optional<ProjectEntity> findByIdWithColumns(@Param("id") UUID id);
 }

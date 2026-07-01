@@ -1,22 +1,24 @@
 package tools
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 
+	proto "github.com/dragonfarm/SoloPlanner/proto"
 	"github.com/tmc/langchaingo/llms"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/encoding/protojson"
+	pb "google.golang.org/protobuf/proto"
 )
 
-// sharedHTTPClient is reused across all tool invocations to benefit from
-// connection pooling. The timeout is intentionally generous since the Java
-// backend might need to hit the database.
-var sharedHTTPClient = &http.Client{Timeout: 15 * time.Second}
+// grpcTimeout is applied to every individual gRPC call.
+// It mirrors the old shared HTTP client's 15-second timeout.
+const grpcTimeout = 15 * time.Second
 
 // SessionContext holds the ambient user/project identity for one WebSocket session.
 // It is populated at the start of every agent turn from the chatRequest fields
@@ -26,16 +28,28 @@ type SessionContext struct {
 	ProjectID string
 }
 
-// ProjectTools provides tools that interact with the Java backend REST API.
-// It is safe for concurrent use — the sessions map uses sync.Map.
+// ProjectTools provides tools that interact with the Java backend over gRPC.
+// It is safe for concurrent use — the sessions map uses sync.Map and the
+// gRPC client stub is goroutine-safe by design.
 type ProjectTools struct {
-	baseURL  string   // e.g. "http://localhost:8081", no trailing slash
-	sessions sync.Map // sessionID → SessionContext
+	client   proto.ProjectGrpcServiceClient // generated gRPC stub
+	sessions sync.Map                       // sessionID → SessionContext
 }
 
-// NewProjectTools creates a ProjectTools targeting javaBaseURL.
-func NewProjectTools(javaBaseURL string) *ProjectTools {
-	return &ProjectTools{baseURL: strings.TrimRight(javaBaseURL, "/")}
+// NewProjectTools dials the Java backend's gRPC server at grpcAddr (host:port)
+// and wraps the connection in the generated client stub.
+// The connection uses insecure transport credentials; add TLS via config when needed.
+// Returns an error if the dial parameters are invalid (actual connectivity errors
+// surface lazily on the first RPC call).
+func NewProjectTools(grpcAddr string) (*ProjectTools, error) {
+	conn, err := grpc.NewClient(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("project_tools: dial gRPC backend at %s: %w", grpcAddr, err)
+	}
+
+	return &ProjectTools{
+		client: proto.NewProjectGrpcServiceClient(conn),
+	}, nil
 }
 
 // SetSessionContext stores the active user/project identity for the given session.
@@ -70,6 +84,11 @@ func (pt *ProjectTools) resolveIDs(sessionID, argsUserID, argsProjectID string) 
 	return
 }
 
+// callContext returns a context with the standard per-call timeout.
+func callContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), grpcTimeout)
+}
+
 // RegisterAll registers every project tool on the given Registry and records
 // this provider as a ContextSetter so session context is injected each turn.
 // Call this once at startup.
@@ -82,6 +101,7 @@ func (pt *ProjectTools) RegisterAll(r *Registry) {
 }
 
 // ── Tool definitions (what Gemma sees) ───────────────────────────────────────
+
 func (pt *ProjectTools) getProjectTasksDef() llms.Tool {
 	return llms.Tool{
 		Type: "function",
@@ -126,8 +146,8 @@ func (pt *ProjectTools) createColumnDef() llms.Tool {
 	return llms.Tool{
 		Type: "function",
 		Function: &llms.FunctionDefinition{
-			Name:        "create_task",
-			Description: "Creates a new task inside a project column and assigns it to the current user. The projectId and userId are injected automatically by the server; do not ask the user for them.",
+			Name:        "create_column",
+			Description: "Creates a new column inside a project. The projectId is injected automatically by the server; do not ask the user for it.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -138,10 +158,6 @@ func (pt *ProjectTools) createColumnDef() llms.Tool {
 					"title": map[string]any{
 						"type":        "string",
 						"description": "Title of the new column.",
-					},
-					"userId": map[string]any{
-						"type":        "string",
-						"description": "UUID of the user the task is assigned to. Omit — the server injects this automatically from the active session.",
 					},
 				},
 				"required": []string{"title"},
@@ -190,12 +206,12 @@ func (pt *ProjectTools) createTaskDef() llms.Tool {
 					},
 					"priority": map[string]any{
 						"type":        "string",
-						"description": "Priority of the task: LOW, MEDIUM, HIGH, or URGENT. Default to LOW if not specified.",
+						"description": "Priority of the task: LOW, MEDIUM, HIGH, or URGENT.",
 					},
 				},
 				// projectId and userId are intentionally absent from required[] —
 				// the server injects them from the active session context.
-				"required": []string{"columnId", "title", "deadline"},
+				"required": []string{"columnId", "title", "deadline", "priority"},
 			},
 		},
 	}
@@ -203,7 +219,7 @@ func (pt *ProjectTools) createTaskDef() llms.Tool {
 
 // ── Tool implementations (what Go executes) ───────────────────────────────────
 
-// GetUserProjects calls GET /projects?userId={id} on the Java backend.
+// GetUserProjects calls ProjectGrpcService.GetUserProjects on the Java backend.
 // userId is resolved from the model's args first, then the stored session context.
 func (pt *ProjectTools) GetUserProjects(sessionID, args string) (string, error) {
 	var params struct {
@@ -218,14 +234,22 @@ func (pt *ProjectTools) GetUserProjects(sessionID, args string) (string, error) 
 		return "", fmt.Errorf("get_user_projects: userId is required but was not provided by the model or the active session")
 	}
 
-	url := fmt.Sprintf("%s/projects?userId=%s", pt.baseURL, userID)
-	return doGet(url)
+	ctx, cancel := callContext()
+	defer cancel()
+
+	resp, err := pt.client.GetUserProjects(ctx, &proto.UserProjectsRequest{UserId: userID})
+	if err != nil {
+		return "", fmt.Errorf("get_user_projects: gRPC call failed: %w", err)
+	}
+
+	return marshalProto(resp)
 }
 
-// GetProjectTasks calls GET /projects/{projectId}/board on the Java backend.
+// GetProjectTasks calls ProjectGrpcService.GetProjectBoard on the Java backend.
 // projectId is resolved from the model's args first, then the stored session context.
 func (pt *ProjectTools) GetProjectTasks(sessionID, args string) (string, error) {
 	log.Println("[tools] GetProjectTasks called")
+
 	var params struct {
 		ProjectID string `json:"projectId"`
 	}
@@ -238,11 +262,18 @@ func (pt *ProjectTools) GetProjectTasks(sessionID, args string) (string, error) 
 		return "", fmt.Errorf("get_project_tasks: projectId is required but was not provided by the model or the active session")
 	}
 
-	url := fmt.Sprintf("%s/projects/%s/board", pt.baseURL, projectID)
-	return doGet(url)
+	ctx, cancel := callContext()
+	defer cancel()
+
+	resp, err := pt.client.GetProjectBoard(ctx, &proto.ProjectBoardRequest{ProjectId: projectID})
+	if err != nil {
+		return "", fmt.Errorf("get_project_tasks: gRPC call failed: %w", err)
+	}
+
+	return marshalProto(resp)
 }
 
-// GetProjectTaskBlueprint calls GET /helper/task/blueprint/{projectId}.
+// GetProjectTaskBlueprint calls ProjectGrpcService.GetProjectTaskBlueprint on the Java backend.
 // projectId is resolved from the model's args first, then the stored session context.
 func (pt *ProjectTools) GetProjectTaskBlueprint(sessionID, args string) (string, error) {
 	var params struct {
@@ -257,11 +288,18 @@ func (pt *ProjectTools) GetProjectTaskBlueprint(sessionID, args string) (string,
 		return "", fmt.Errorf("get_project_task_blueprint: projectId is required but was not provided by the model or the active session")
 	}
 
-	url := fmt.Sprintf("%s/helper/task/blueprint/%s", pt.baseURL, projectID)
-	return doGet(url)
+	ctx, cancel := callContext()
+	defer cancel()
+
+	resp, err := pt.client.GetProjectTaskBlueprint(ctx, &proto.TaskBlueprintRequest{ProjectId: projectID})
+	if err != nil {
+		return "", fmt.Errorf("get_project_task_blueprint: gRPC call failed: %w", err)
+	}
+
+	return marshalProto(resp)
 }
 
-// CreateTask calls POST /projects/{projectId}/{columnId}/tasks on the Java backend.
+// CreateTask calls ProjectGrpcService.CreateTask on the Java backend.
 // projectId and userId are resolved from the model's args first, then the stored
 // session context, so the model never needs to ask the user for those values.
 func (pt *ProjectTools) CreateTask(sessionID, args string) (string, error) {
@@ -287,92 +325,75 @@ func (pt *ProjectTools) CreateTask(sessionID, args string) (string, error) {
 		return "", fmt.Errorf("create_task: userId is required but was not provided by the model or the active session")
 	}
 
-	task_priority := params.Priority
+	log.Println("PRIORITY: ", params.Priority)
 
-	if task_priority == "" {
-		task_priority = "LOW"
+	priority := params.Priority
+	if priority == "" {
+		priority = "LOW"
 	}
 
-	// Build the request body that Java's ProjectTaskRequest expects.
-	reqBody, err := json.Marshal(map[string]any{
-		"title":       params.Title,
-		"userId":      userID,
-		"description": params.Description,
-		"deadline":    params.Deadline,
-		"priority":    task_priority,
+	ctx, cancel := callContext()
+	defer cancel()
+
+	resp, err := pt.client.CreateTask(ctx, &proto.CreateTaskRequest{
+		ProjectId:   projectID,
+		ColumnId:    params.ColumnID,
+		Title:       params.Title,
+		UserId:      userID,
+		Description: params.Description,
+		Deadline:    params.Deadline,
+		Priority:    priority,
 	})
 	if err != nil {
-		return "", fmt.Errorf("create_task: marshal body: %w", err)
+		return "", fmt.Errorf("create_task: gRPC call failed: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/projects/%s/%s/tasks", pt.baseURL, projectID, params.ColumnID)
-	return doPost(url, reqBody)
+	return marshalProto(resp)
 }
 
+// CreateColumn calls ProjectGrpcService.CreateColumn on the Java backend.
 func (pt *ProjectTools) CreateColumn(sessionID, args string) (string, error) {
 	var params struct {
 		Title     string `json:"name"`
 		ProjectID string `json:"projectId"`
-		UserID    string `json:"userId"`
 	}
 	if err := json.Unmarshal([]byte(args), &params); err != nil {
-		return "", fmt.Errorf("create_task: parse args: %w", err)
+		return "", fmt.Errorf("create_column: parse args: %w", err)
 	}
 
-	// Resolve projectId and userId from args, falling back to the stored session context.
-	userID, projectID := pt.resolveIDs(sessionID, params.UserID, params.ProjectID)
+	_, projectID := pt.resolveIDs(sessionID, "", params.ProjectID)
 	if projectID == "" {
-		return "", fmt.Errorf("create_task: projectId is required but was not provided by the model or the active session")
-	}
-	if userID == "" {
-		return "", fmt.Errorf("create_task: userId is required but was not provided by the model or the active session")
+		return "", fmt.Errorf("create_column: projectId is required but was not provided by the model or the active session")
 	}
 
-	// Build the request body that Java's ProjectTaskRequest expects.
-	reqBody, err := json.Marshal(map[string]any{
-		"name": params.Title,
+	ctx, cancel := callContext()
+	defer cancel()
+
+	resp, err := pt.client.CreateColumn(ctx, &proto.CreateColumnRequest{
+		ProjectId: projectID,
+		Name:      params.Title,
 	})
 	if err != nil {
-		return "", fmt.Errorf("create_task: marshal body: %w", err)
+		return "", fmt.Errorf("create_column: gRPC call failed: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/projects/%s/columns", pt.baseURL, projectID)
-	return doPost(url, reqBody)
+	return marshalProto(resp)
 }
 
-// ── HTTP helpers ──────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-// doGet performs a GET request and returns the response body as a string.
-func doGet(url string) (string, error) {
-	log.Println("REQUESTING GET URL: ", url)
-	resp, err := sharedHTTPClient.Get(url)
+// marshalProto converts any generated proto.Message to a JSON string using
+// protojson. This is preferred over encoding/json because protojson correctly
+// handles proto-specific conventions (enums as strings, well-known types, etc.).
+// Fields are emitted with snake_case names matching the .proto file.
+func marshalProto(msg pb.Message) (string, error) {
+	opts := protojson.MarshalOptions{
+		UseProtoNames:   true,  // snake_case field names (e.g. project_id, not projectId)
+		EmitUnpopulated: false, // omit zero-value fields to keep the payload compact
+	}
+	bytes, err := opts.Marshal(msg)
 	if err != nil {
-		return "", fmt.Errorf("GET %s: %w", url, err)
+		return "", fmt.Errorf("marshal proto response: %w", err)
 	}
-	defer resp.Body.Close()
-	return readResponseBody(resp)
-}
-
-// doPost performs a POST request with a JSON body and returns the response.
-func doPost(url string, body []byte) (string, error) {
-	log.Println("REQUESTING POST URL: ", url)
-	resp, err := sharedHTTPClient.Post(url, "application/json", strings.NewReader(string(body)))
-	if err != nil {
-		return "", fmt.Errorf("POST %s: %w", url, err)
-	}
-	defer resp.Body.Close()
-	return readResponseBody(resp)
-}
-
-// readResponseBody reads the full body and returns an error if the status
-// code indicates a backend failure.
-func readResponseBody(resp *http.Response) (string, error) {
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("read body: %w", err)
-	}
-	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("backend returned %d: %s", resp.StatusCode, string(data))
-	}
-	return string(data), nil
+	return string(bytes), nil
 }

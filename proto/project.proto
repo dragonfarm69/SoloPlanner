@@ -1,0 +1,157 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "helper.project.planner_helper";
+option go_package = "github.com/dragonfarm/SoloPlanner/proto";
+
+package project;
+
+service ProjectGrpcService {
+  // Get all projects for a specific user
+  rpc GetUserProjects (UserProjectsRequest) returns (UserProjectsResponse);
+
+  // Get project board (columns and tasks)
+  rpc GetProjectBoard (ProjectBoardRequest) returns (ProjectBoardResponse);
+
+  // Get task creation blueprint (valid columns, tags, priority, current time)
+  rpc GetProjectTaskBlueprint (TaskBlueprintRequest) returns (TaskBlueprintResponse);
+
+  // Create a new task
+  rpc CreateTask (CreateTaskRequest) returns (CreateTaskResponse);
+
+  // Create a new column
+  rpc CreateColumn (CreateColumnRequest) returns (CreateColumnResponse);
+
+  // AI microservice calls this once to subscribe to AI chat events.
+  // Java streams AIEvent messages whenever a user sends an AI chat message.
+  rpc SubscribeAIEvents (AIEventSubscribeRequest) returns (stream AIEvent);
+}
+
+// ── AI Event Streaming ───────────────────────────────────────────────────────
+
+// Empty request — the stream stays open until the client disconnects.
+message AIEventSubscribeRequest {}
+
+// One AI chat event pushed by Java to the Go AI microservice.
+message AIEvent {
+  string project_id = 1;
+  string user_id    = 2;
+  string content    = 3;
+}
+
+// ── Shared / Common Messages ────────────────────────────────────────────────
+
+message Project {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string owner_id = 4;
+  string group_id = 5;
+}
+
+message Tag {
+  string id = 1;
+  string name = 2;
+  string color = 3;
+}
+
+message Task {
+  string id = 1;
+  string title = 2;
+  string priority = 3;
+  string order = 4;
+  string column_id = 5;
+  string username = 6;
+  string deadline = 7; // ISO-8601 string
+  repeated Tag tags = 8;
+}
+
+message Column {
+  string id = 1;
+  string name = 2;
+  string color = 3;
+  string position = 4;
+  repeated Task tasks = 5;
+}
+
+// ── Request / Response Messages ──────────────────────────────────────────────
+
+message UserProjectsRequest {
+  string user_id = 1;
+}
+
+message UserProjectsResponse {
+  repeated Project projects = 1;
+}
+
+message ProjectBoardRequest {
+  string project_id = 1;
+}
+
+message ProjectBoardResponse {
+  string title = 1;
+  repeated Column columns = 2;
+}
+
+message TaskBlueprintRequest {
+  string project_id = 1;
+}
+
+message TaskBlueprintResponse {
+  string title = 1;
+  string description = 2;
+  repeated TagOption tag_options = 3;
+  repeated ColumnOption column_options = 4;
+  repeated PriorityOption priority_options = 5;
+  string current_date_time = 6;
+}
+
+message TagOption {
+  string id = 1;
+  string name = 2;
+  string color = 3;
+}
+
+message ColumnOption {
+  string id = 1;
+  string name = 2;
+  string color = 3;
+}
+
+message PriorityOption {
+  string priority = 1;
+}
+
+message CreateTaskRequest {
+  string project_id = 1;
+  string column_id = 2;
+  string title = 3;
+  string user_id = 4;
+  string description = 5;
+  string deadline = 6; // ISO-8601 string
+  string priority = 7;
+  repeated string tag_ids = 8;
+}
+
+message CreateTaskResponse {
+  string id = 1;
+  string title = 2;
+  string priority = 3;
+  string order = 4;
+  string column_id = 5;
+  string username = 6;
+  string deadline = 7;
+  repeated Tag tags = 8;
+}
+
+message CreateColumnRequest {
+  string project_id = 1;
+  string name = 2;
+}
+
+message CreateColumnResponse {
+  string id = 1;
+  string name = 2;
+  string color = 3;
+  string position = 4;
+}

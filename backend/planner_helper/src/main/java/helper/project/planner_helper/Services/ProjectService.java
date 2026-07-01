@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import helper.project.planner_helper.DTO.ColumnPositionRequest;
 import helper.project.planner_helper.DTO.EntityMapper;
@@ -20,11 +21,9 @@ import helper.project.planner_helper.DTO.Blueprint.ProjectSummary;
 import helper.project.planner_helper.Types.Priority;
 import helper.project.planner_helper.DTO.Events.ColumnResponse;
 import helper.project.planner_helper.DTO.Events.EventPayload;
-import helper.project.planner_helper.DTO.Events.TaskResponse;
 import helper.project.planner_helper.Database.GroupEntity;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TaskColumn;
-import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Repository.GroupRepository;
 import helper.project.planner_helper.Repository.ProjectRepository;
@@ -249,10 +248,11 @@ public class ProjectService {
         return payload;
     }
 
+    @Transactional(readOnly = true)
     public ProjectSummary constructTaskCreationBlueprint(String projectId) {
         UUID projectUUID = UUID.fromString(projectId);
 
-        ProjectEntity project = this.projectRepository.findById(projectUUID)
+        ProjectEntity project = this.projectRepository.findByIdWithColumns(projectUUID)
                 .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));
 
         List<ColumnSummary> columnOptions = project.getColumns() != null
