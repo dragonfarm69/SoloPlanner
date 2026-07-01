@@ -1,103 +1,28 @@
 package helper.project.planner_helper;
 
-import java.util.Base64;
-import java.util.Map;
-import java.util.UUID;
-
 import org.springframework.context.annotation.Configuration;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.simp.config.ChannelRegistration;
-import org.springframework.messaging.simp.stomp.StompCommand;
-import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
-import org.springframework.messaging.support.ChannelInterceptor;
-import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
-import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
-import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 import helper.HandShakeInterceptor;
-import helper.project.planner_helper.Database.ProjectEntity;
-import helper.project.planner_helper.Database.UserEntity;
-import helper.project.planner_helper.Repository.ProjectRepository;
-import helper.project.planner_helper.Repository.UserRepository;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import helper.project.planner_helper.Handler.ProjectWebSocketHandler;
 
 @Configuration
-@EnableWebSocketMessageBroker
-public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    private final ProjectRepository projectRepository;
-    private final UserRepository userRepository;
+@EnableWebSocket
+public class WebSocketConfig implements WebSocketConfigurer {
 
-    public WebSocketConfig(UserRepository userRepository,
-            ProjectRepository projectRepository) {
-        this.userRepository = userRepository;
-        this.projectRepository = projectRepository;
+    private final ProjectWebSocketHandler webSocketHandler;
+
+    public WebSocketConfig(ProjectWebSocketHandler webSocketHandler) {
+        this.webSocketHandler = webSocketHandler;
     }
 
     @Override
-    public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(new ChannelInterceptor() {
-            @Override
-            public Message<?> preSend(Message<?> message, MessageChannel regiChannel) {
-                StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
-
-                if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
-                    Map<String, Object> attributes = accessor.getSessionAttributes();
-                    String authToken = (attributes != null) ? (String) attributes.get("authToken") : null;
-
-                    if (authToken == null) {
-                        throw new RuntimeException("No token found");
-                    }
-
-                    // get id in access_token
-                    String[] chunks = authToken.split("\\.");
-                    Base64.Decoder decoder = Base64.getUrlDecoder();
-
-                    String payload = new String(decoder.decode(chunks[1]));
-                    ObjectMapper mapper = new ObjectMapper();
-
-                    Map<String, Object> payloadMap = mapper.readValue(payload,
-                            new TypeReference<Map<String, Object>>() {
-                            });
-                    String userId = (String) payloadMap.get("sub");
-
-                    UserEntity user = userRepository.findUserByUserId(userId);
-                    if (user == null) {
-                        throw new RuntimeException("User not found: " + userId);
-                    }
-
-                    String destination = accessor.getDestination();
-                    if (destination != null && destination.startsWith("/topic/project/")) {
-                        String projectId = destination.replace("/topic/project/", "");
-
-                        UUID projectUUID = UUID.fromString(projectId);
-
-                        ProjectEntity project = projectRepository.findById(projectUUID).orElse(null);
-
-                        if (project == null) {
-                            throw new RuntimeException("This project doesn't exists: " + projectId);
-                        }
-
-                        // check if user is in project
-                        boolean isUserInProject = projectRepository.findUserInProject(user.getId(), projectUUID)
-                                .isPresent();
-
-                        if (!isUserInProject) {
-                            throw new RuntimeException("This user " + userId + "is not in the project " + projectId);
-                        }
-                    }
-                }
-                return message;
-            }
-        });
-    }
-
-    @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws-connect")
-                .addInterceptors(new HandShakeInterceptor()) // register new interceptor
-                .setAllowedOriginPatterns("*")
-                .withSockJS();
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(webSocketHandler, "/ws-connect/projects/{projectId}")
+                .addInterceptors(new HandShakeInterceptor())
+                .setAllowedOriginPatterns("*");
     }
 }
+

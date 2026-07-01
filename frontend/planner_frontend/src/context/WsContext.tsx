@@ -1,27 +1,22 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  type ReactNode,
-} from "react";
-import { stompService, type IStompService } from "../services/StompService";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { wsService, type IWsService } from "../services/WebsocketService";
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
-interface StompContextValue {
+interface WsContextValue {
   /**
    * Exposes the service for advanced consumers (e.g. a future component that
-   * needs to send STOMP frames). Typical consumers should use useStompMessages()
+   * needs to send Ws frames). Typical consumers should use useWsMessages()
    * instead of accessing the service directly.
    */
-  service: IStompService;
+  service: IWsService;
 }
 
-const StompContext = createContext<StompContextValue | null>(null);
+const WsContext = createContext<WsContextValue | null>(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
-interface StompProviderProps {
+interface WsProviderProps {
   projectId: string | undefined;
   children: ReactNode;
 }
@@ -29,38 +24,38 @@ interface StompProviderProps {
 /**
  * Manages the board WebSocket connection lifecycle.
  *
- * Mount this once around the board page. It calls stompService.connect() when
- * projectId is available and stompService.disconnect() on cleanup (unmount or
- * projectId change). Components subscribe to messages via useStompMessages().
+ * Mount this once around the board page. It calls WsService.connect() when
+ * projectId is available and WsService.disconnect() on cleanup (unmount or
+ * projectId change). Components subscribe to messages via useWsMessages().
  */
-export function StompProvider({ projectId, children }: StompProviderProps) {
+export function WsProvider({ projectId, children }: WsProviderProps) {
   useEffect(() => {
     if (!projectId) return;
 
-    stompService.connect(projectId);
+    wsService.connect(projectId);
 
     return () => {
-      stompService.disconnect();
+      wsService.disconnect();
     };
   }, [projectId]);
 
   return (
-    <StompContext.Provider value={{ service: stompService }}>
+    <WsContext.Provider value={{ service: wsService }}>
       {children}
-    </StompContext.Provider>
+    </WsContext.Provider>
   );
 }
 
 // ─── Context accessor ─────────────────────────────────────────────────────────
 
 /**
- * Returns the StompContext value. Throws if called outside <StompProvider>.
+ * Returns the WsContext value. Throws if called outside <StompProvider>.
  * Prefer useStompMessages() for the common subscription use-case.
  */
-export function useStompContext(): StompContextValue {
-  const ctx = useContext(StompContext);
+export function useWsContext(): WsContextValue {
+  const ctx = useContext(WsContext);
   if (!ctx) {
-    throw new Error("useStompContext must be used inside <StompProvider>");
+    throw new Error("useWsContext must be used inside <StompProvider>");
   }
   return ctx;
 }

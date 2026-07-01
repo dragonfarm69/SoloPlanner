@@ -1,4 +1,4 @@
-import { StompProvider } from "../context/StompContext";
+import { WsProvider } from "../context/WsContext";
 import Sidebar from "../components/Sidebar";
 import BoardHeader from "../components/BoardHeader";
 import KanbanBoard from "./Kanban/KanbanBoard";
@@ -33,7 +33,7 @@ export default function MainPage() {
   } = useMainPage();
 
   return (
-    <StompProvider projectId={projectId}>
+    <WsProvider projectId={projectId}>
       <Sidebar
         totalTasks={board.tasks.length}
         completedTasks={completedTasks}
@@ -103,7 +103,6 @@ export default function MainPage() {
       {isChatOpen && (
         <AiChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
-    </StompProvider>
+    </WsProvider>
   );
 }
-

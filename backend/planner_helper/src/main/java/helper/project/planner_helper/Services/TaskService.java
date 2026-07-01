@@ -7,7 +7,7 @@ import java.util.UUID;
 import javax.swing.text.html.HTML.Tag;
 import javax.swing.text.html.parser.Entity;
 
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import helper.project.planner_helper.Handler.ProjectWebSocketHandler;
 import org.springframework.stereotype.Service;
 
 import helper.project.planner_helper.DTO.EntityMapper;
@@ -37,18 +37,18 @@ public class TaskService {
     private final TaskColumnRepository taskColumnRepository;
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
-    private final SimpMessagingTemplate mesageTemplate;
+    private final ProjectWebSocketHandler webSocketHandler;
 
     // constructor
     public TaskService(TaskRepository taskRepository, ProjectRepository projectRepository,
             TaskColumnRepository taskColumnRepository, UserRepository userRepository,
-            TagRepository tagRepository, SimpMessagingTemplate mesageTemplate) {
+            TagRepository tagRepository, ProjectWebSocketHandler webSocketHandler) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.taskColumnRepository = taskColumnRepository;
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
-        this.mesageTemplate = mesageTemplate;
+        this.webSocketHandler = webSocketHandler;
     }
 
     public List<TaskEvent> getUserTasks(UUID userId) {
@@ -122,9 +122,8 @@ public class TaskService {
         TaskSummaryResponse response = EntityMapper.mapToTaskSummaryResponse(createdTask);
         EventPayload payload = new EventPayload.TaskCreatedEvent(response);
 
-        String destination = "/topic/projects/" + projectId;
-        System.out.println("SENDING TO " + destination);
-        this.mesageTemplate.convertAndSend(destination, payload);
+        logBroadcast(projectUUID, payload);
+        this.webSocketHandler.broadcastToProject(projectUUID, payload);
 
         return createdTask;
     }
@@ -195,9 +194,8 @@ public class TaskService {
         TaskSummaryResponse response = EntityMapper.mapToTaskSummaryResponse(editedTask);
         EventPayload payload = new EventPayload.TaskEditedEvent(response);
 
-        String destination = "/topic/projects/" + projectId;
-        System.out.println("SENDING TO " + destination);
-        this.mesageTemplate.convertAndSend(destination, payload);
+        logBroadcast(projectUUID, payload);
+        this.webSocketHandler.broadcastToProject(projectUUID, payload);
         return editedTask;
     }
 
@@ -268,12 +266,17 @@ public class TaskService {
 
         // broad cast the event
         EventPayload payload = new EventPayload.TaskMovedEvent(taskId, columnId, newOrder);
-        String destination = "/topic/projects/" + projectId;
 
-        this.mesageTemplate.convertAndSend(destination, payload);
+        logBroadcast(projectUUID, payload);
+        this.webSocketHandler.broadcastToProject(projectUUID, payload);
     }
 
     public List<TaskEntity> getProjectTasks(UUID projectId) {
         return this.taskRepository.findTaskByProjectId(projectId);
     }
+
+    private void logBroadcast(UUID projectUUID, Object payload) {
+        System.out.println("Broadcasting event: " + payload.getClass().getSimpleName() + " to project " + projectUUID);
+    }
 }
+

@@ -1,12 +1,12 @@
 import { useEffect } from "react";
-import { stompService, type StompMessageHandler } from "../services/StompService";
+import { wsService, type WsMessageHandler } from "../services/WebsocketService";
 
 /**
- * Subscribes to incoming board events from the STOMP WebSocket.
+ * Subscribes to incoming board events from the Ws WebSocket.
  *
- * The hook registers `handler` with the stompService singleton and
+ * The hook registers `handler` with the WsService singleton and
  * unregisters it on cleanup. No socket is owned by this hook — connection
- * lifecycle is managed by <StompProvider>.
+ * lifecycle is managed by <WsProvider>.
  *
  * Usage:
  * ```tsx
@@ -15,15 +15,15 @@ import { stompService, type StompMessageHandler } from "../services/StompService
  *   switch (event.type) { ... }
  * }, [dispatch]);
  *
- * useStompMessages(handleEvent);
+ * useWsMessages(handleEvent);
  * ```
  *
  * @param handler - A **stable** reference (wrap in useCallback). A new
  *   reference causes a re-subscribe on every render.
  */
-export function useStompMessages(handler: StompMessageHandler): void {
+export function useWsMessages(handler: WsMessageHandler): void {
   useEffect(() => {
-    const unsubscribe = stompService.subscribe(handler);
+    const unsubscribe = wsService.subscribe(handler);
     return unsubscribe;
   }, [handler]);
 }

@@ -6,7 +6,7 @@ import {
   type SetStateAction,
 } from "react";
 import { useBoard, type BoardDispatch } from "../hooks/useBoard";
-import { useStompMessages } from "../hooks/useStompMessages";
+import { useWsMessages } from "../hooks/useWsMessages";
 import type { Task, Priority, Column, Board } from "../types";
 import type { TaskFormData } from "../components/TaskModal";
 import { useParams } from "react-router-dom";
@@ -325,7 +325,7 @@ export function useMainPage(): UseMainPageResult {
     [dispatch],
   );
 
-  useStompMessages(handleStompMessage);
+  useWsMessages(handleStompMessage);
 
   return {
     board,

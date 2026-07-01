@@ -30,7 +30,7 @@ import helper.project.planner_helper.Repository.ProjectRepository;
 import helper.project.planner_helper.Repository.TagRepository;
 import helper.project.planner_helper.Repository.TaskColumnRepository;
 import helper.project.planner_helper.Repository.UserRepository;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import helper.project.planner_helper.Handler.ProjectWebSocketHandler;
 
 @Service
 public class ProjectService {
@@ -38,18 +38,18 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final TaskColumnRepository taskColumnRepository;
     private final TagRepository tagRepository;
-    private final SimpMessagingTemplate mesageTemplate;
+    private final ProjectWebSocketHandler webSocketHandler;
     private final GroupRepository groupRepository;
 
     // constructor
     public ProjectService(ProjectRepository projectRepository, UserRepository userRepository,
             TaskColumnRepository taskColumnRepository, TagRepository tagRepository,
-            SimpMessagingTemplate mesageTemplate, GroupRepository groupRepository) {
+            ProjectWebSocketHandler webSocketHandler, GroupRepository groupRepository) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.taskColumnRepository = taskColumnRepository;
         this.tagRepository = tagRepository;
-        this.mesageTemplate = mesageTemplate;
+        this.webSocketHandler = webSocketHandler;
         this.groupRepository = groupRepository;
     }
 
@@ -142,9 +142,8 @@ public class ProjectService {
         ColumnResponse response = EntityMapper.mapToColumnResponse(createdColumn);
         EventPayload payload = new EventPayload.ColumnCreatedEvent(response);
 
-        String destination = "/topic/projects/" + projectId;
-        System.out.println("SENDING TO " + destination);
-        this.mesageTemplate.convertAndSend(destination, payload);
+        logBroadcast(projectUUID, payload);
+        this.webSocketHandler.broadcastToProject(projectUUID, payload);
 
         return EntityMapper.mapToColumnResponse(column);
     }
@@ -208,9 +207,8 @@ public class ProjectService {
 
         // broad cast the event
         EventPayload payload = new EventPayload.ColumnMovedEvent(columnId, newOrder);
-        String destination = "/topic/projects/" + projectId;
-
-        this.mesageTemplate.convertAndSend(destination, payload);
+        logBroadcast(projectUUID, payload);
+        this.webSocketHandler.broadcastToProject(projectUUID, payload);
     }
 
     public void deleteColumn(UUID columnId) {
@@ -289,5 +287,9 @@ public class ProjectService {
         }
 
         return response;
+    }
+
+    private void logBroadcast(UUID projectUUID, Object payload) {
+        System.out.println("Broadcasting event: " + payload.getClass().getSimpleName() + " to project " + projectUUID);
     }
 }
