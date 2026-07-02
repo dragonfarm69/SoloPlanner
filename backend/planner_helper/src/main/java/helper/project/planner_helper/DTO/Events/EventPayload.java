@@ -69,7 +69,7 @@ public sealed interface EventPayload
 
         }
 
-        record AIMessage(String content) implements EventPayload {
+        record AIMessage(String projectId, String userId, String content) implements EventPayload {
 
         }
 

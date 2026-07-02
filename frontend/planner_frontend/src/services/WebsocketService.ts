@@ -7,12 +7,23 @@ export type WsMessageHandler = (data: unknown) => void;
  */
 export interface IWsService {
   subscribe(handler: WsMessageHandler): () => void;
+  sendMessage(payload: any): void;
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 class ProjectWebSocketService implements IWsService {
   private ws: WebSocket | null = null;
+
+  sendMessage(payload: any): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(payload));
+    } else {
+      console.warn(
+        "[ProjectWebSocketService] Cannot send message: WebSocket is not open.",
+      );
+    }
+  }
   private currentProjectId: string | null = null;
   private listeners: Set<WsMessageHandler> = new Set();
 

@@ -13,7 +13,6 @@ require (
 
 require (
 	github.com/dlclark/regexp2 v1.10.0 // indirect
-	github.com/go-stomp/stomp/v3 v3.1.5 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.6 // indirect
 	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/sys v0.43.0 // indirect

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dragonfarm/SoloPlanner/agent"
@@ -48,9 +49,58 @@ func connectToAIEventStream(client pb.ProjectGrpcServiceClient, orch *agent.Orch
 			log.Printf("[gRPC] AI event received: project=%s user=%s content=%q",
 				event.GetProjectId(), event.GetUserId(), event.GetContent())
 
-			// TODO: pass event to the orchestrator/agent loop.
-			// Example: orch.HandleAIEvent(event.GetProjectId(), event.GetUserId(), event.GetContent())
-			_ = orch
+			// Run the orchestrator in a goroutine so multiple queries can run concurrently
+			go func(projId, userId, message string) {
+				log.Printf("[gRPC] Running agent for project=%s, user=%s", projId, userId)
+
+				// Create a cancellable context for LLM run
+				runCtx, runCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+				defer runCancel()
+
+				tokenCh := make(chan string, 256)
+				errCh := make(chan error, 1)
+
+				// Spawn orchestrator run
+				go func() {
+					orchReq := agent.RunRequest{
+						SessionID: "grpc-" + userId,
+						UserID:    userId,
+						ProjectID: projId,
+						Message:   message,
+					}
+					errCh <- orch.Run(runCtx, orchReq, tokenCh)
+					close(tokenCh)
+				}()
+
+				// Accumulate LLM output tokens
+				var responseBuilder strings.Builder
+				for token := range tokenCh {
+					responseBuilder.WriteString(token)
+				}
+
+				// Check LLM completion error
+				if err := <-errCh; err != nil {
+					log.Printf("[gRPC] Orchestrator error for user %s: %v", userId, err)
+					_, _ = client.SendAIChatResponse(context.Background(), &pb.AIEvent{
+						ProjectId: projId,
+						UserId:    userId,
+						Content:   "Sorry, I encountered an error while processing your request: " + err.Error(),
+					})
+					return
+				}
+
+				responseText := responseBuilder.String()
+				log.Printf("[gRPC] Sending AI response (len=%d) to project=%s, user=%s", len(responseText), projId, userId)
+
+				_, err = client.SendAIChatResponse(context.Background(), &pb.AIEvent{
+					ProjectId: projId,
+					UserId:    userId,
+					Content:   responseText,
+				})
+				if err != nil {
+					log.Printf("[gRPC] Failed to send AI response back via gRPC: %v", err)
+				}
+			}(event.GetProjectId(), event.GetUserId(), event.GetContent())
 		}
 
 		cancel()

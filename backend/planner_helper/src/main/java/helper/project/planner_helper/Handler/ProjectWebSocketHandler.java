@@ -24,6 +24,7 @@ import helper.project.planner_helper.DTO.Events.EventPayload;
 import helper.project.planner_helper.Repository.ProjectRepository;
 import helper.project.planner_helper.Repository.UserRepository;
 import helper.project.planner_helper.Services.AIChatStreamService;
+import io.grpc.InternalChannelz.ChannelTrace.Event;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
@@ -123,16 +124,34 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    public void broadcastToUserInProject(UUID projectId, String targetUserId, Object payload) {
+        try {
+            String jsonPayload = objectMapper.writeValueAsString(payload);
+            redisTemplate.convertAndSend("project:" + projectId, jsonPayload);
+        } catch (Exception e) {
+            log.error("Failed to serialize and publish message for user {} in project {}", targetUserId, projectId, e);
+        }
+    }
+
     public void onRedisMessage(String message, String channel) {
         String projectId = channel.substring("project:".length());
         try {
             UUID projectUUID = UUID.fromString(projectId);
             Set<WebSocketSession> sessions = projectSessions.getOrDefault(projectUUID, Collections.emptySet());
-
+            EventPayload payload = objectMapper.readValue(message, EventPayload.class);
             TextMessage textMessage = new TextMessage(message);
 
             for (WebSocketSession session : sessions) {
                 if (session.isOpen()) {
+                    // skip this session if it is not the target user id
+                    // assume if the target user id exist
+                    if (payload instanceof EventPayload.AIMessage aiMessage) {
+                        String userId = (String) session.getAttributes().get("userId");
+                        if (!aiMessage.userId().equals(userId)) {
+                            continue;
+                        }
+                    }
+
                     try {
                         session.sendMessage(textMessage);
                     } catch (IOException e) {
@@ -208,7 +227,7 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
             }
 
             // Save user info in the session attributes for subsequent message processing
-            session.getAttributes().put("userId", userId);
+            session.getAttributes().put("userId", user.getId().toString());
             return true;
         } catch (Exception e) {
             log.error("Error during authentication/authorization of WebSocket session", e);

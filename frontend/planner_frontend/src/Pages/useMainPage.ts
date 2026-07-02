@@ -249,6 +249,10 @@ export function useMainPage(): UseMainPageResult {
       console.log("Received broadcast event:", data);
 
       switch (data.type) {
+        case "AI_CHAT":
+          // Handled by the dedicated AiChatPanel component
+          break;
+
         case "TASK_CREATED":
           dispatch({
             type: "ADD_TASK",

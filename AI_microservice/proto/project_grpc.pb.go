@@ -25,6 +25,7 @@ const (
 	ProjectGrpcService_CreateTask_FullMethodName              = "/project.ProjectGrpcService/CreateTask"
 	ProjectGrpcService_CreateColumn_FullMethodName            = "/project.ProjectGrpcService/CreateColumn"
 	ProjectGrpcService_SubscribeAIEvents_FullMethodName       = "/project.ProjectGrpcService/SubscribeAIEvents"
+	ProjectGrpcService_SendAIChatResponse_FullMethodName      = "/project.ProjectGrpcService/SendAIChatResponse"
 )
 
 // ProjectGrpcServiceClient is the client API for ProjectGrpcService service.
@@ -41,8 +42,10 @@ type ProjectGrpcServiceClient interface {
 	CreateTask(ctx context.Context, in *CreateTaskRequest, opts ...grpc.CallOption) (*CreateTaskResponse, error)
 	// Create a new column
 	CreateColumn(ctx context.Context, in *CreateColumnRequest, opts ...grpc.CallOption) (*CreateColumnResponse, error)
-	// Subscribe to AI chat events; Java streams AIEvent messages back.
+	// AI microservice calls this once to subscribe to AI chat events.
+	// Java streams AIEvent messages whenever a user sends an AI chat message.
 	SubscribeAIEvents(ctx context.Context, in *AIEventSubscribeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AIEvent], error)
+	SendAIChatResponse(ctx context.Context, in *AIEvent, opts ...grpc.CallOption) (*SendAIChatResponseResponse, error)
 }
 
 type projectGrpcServiceClient struct {
@@ -110,13 +113,26 @@ func (c *projectGrpcServiceClient) SubscribeAIEvents(ctx context.Context, in *AI
 		return nil, err
 	}
 	x := &grpc.GenericClientStream[AIEventSubscribeRequest, AIEvent]{ClientStream: stream}
-	if err := x.SendMsg(in); err != nil {
+	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
-	if err := x.CloseSend(); err != nil {
+	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
 	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ProjectGrpcService_SubscribeAIEventsClient = grpc.ServerStreamingClient[AIEvent]
+
+func (c *projectGrpcServiceClient) SendAIChatResponse(ctx context.Context, in *AIEvent, opts ...grpc.CallOption) (*SendAIChatResponseResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendAIChatResponseResponse)
+	err := c.cc.Invoke(ctx, ProjectGrpcService_SendAIChatResponse_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // ProjectGrpcServiceServer is the server API for ProjectGrpcService service.
@@ -133,6 +149,10 @@ type ProjectGrpcServiceServer interface {
 	CreateTask(context.Context, *CreateTaskRequest) (*CreateTaskResponse, error)
 	// Create a new column
 	CreateColumn(context.Context, *CreateColumnRequest) (*CreateColumnResponse, error)
+	// AI microservice calls this once to subscribe to AI chat events.
+	// Java streams AIEvent messages whenever a user sends an AI chat message.
+	SubscribeAIEvents(*AIEventSubscribeRequest, grpc.ServerStreamingServer[AIEvent]) error
+	SendAIChatResponse(context.Context, *AIEvent) (*SendAIChatResponseResponse, error)
 	mustEmbedUnimplementedProjectGrpcServiceServer()
 }
 
@@ -157,6 +177,12 @@ func (UnimplementedProjectGrpcServiceServer) CreateTask(context.Context, *Create
 }
 func (UnimplementedProjectGrpcServiceServer) CreateColumn(context.Context, *CreateColumnRequest) (*CreateColumnResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateColumn not implemented")
+}
+func (UnimplementedProjectGrpcServiceServer) SubscribeAIEvents(*AIEventSubscribeRequest, grpc.ServerStreamingServer[AIEvent]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeAIEvents not implemented")
+}
+func (UnimplementedProjectGrpcServiceServer) SendAIChatResponse(context.Context, *AIEvent) (*SendAIChatResponseResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SendAIChatResponse not implemented")
 }
 func (UnimplementedProjectGrpcServiceServer) mustEmbedUnimplementedProjectGrpcServiceServer() {}
 func (UnimplementedProjectGrpcServiceServer) testEmbeddedByValue()                            {}
@@ -269,6 +295,35 @@ func _ProjectGrpcService_CreateColumn_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProjectGrpcService_SubscribeAIEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(AIEventSubscribeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ProjectGrpcServiceServer).SubscribeAIEvents(m, &grpc.GenericServerStream[AIEventSubscribeRequest, AIEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ProjectGrpcService_SubscribeAIEventsServer = grpc.ServerStreamingServer[AIEvent]
+
+func _ProjectGrpcService_SendAIChatResponse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AIEvent)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectGrpcServiceServer).SendAIChatResponse(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProjectGrpcService_SendAIChatResponse_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectGrpcServiceServer).SendAIChatResponse(ctx, req.(*AIEvent))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProjectGrpcService_ServiceDesc is the grpc.ServiceDesc for ProjectGrpcService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -296,11 +351,15 @@ var ProjectGrpcService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "CreateColumn",
 			Handler:    _ProjectGrpcService_CreateColumn_Handler,
 		},
+		{
+			MethodName: "SendAIChatResponse",
+			Handler:    _ProjectGrpcService_SendAIChatResponse_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "SubscribeAIEvents",
-			Handler:       nil, // client-side only; server is in Java
+			Handler:       _ProjectGrpcService_SubscribeAIEvents_Handler,
 			ServerStreams: true,
 		},
 	},

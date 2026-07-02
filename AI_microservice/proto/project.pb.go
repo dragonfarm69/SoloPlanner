@@ -21,6 +21,141 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Empty request — the stream stays open until the client disconnects.
+type AIEventSubscribeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIEventSubscribeRequest) Reset() {
+	*x = AIEventSubscribeRequest{}
+	mi := &file_project_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIEventSubscribeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIEventSubscribeRequest) ProtoMessage() {}
+
+func (x *AIEventSubscribeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_project_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIEventSubscribeRequest.ProtoReflect.Descriptor instead.
+func (*AIEventSubscribeRequest) Descriptor() ([]byte, []int) {
+	return file_project_proto_rawDescGZIP(), []int{0}
+}
+
+// Empty response
+type SendAIChatResponseResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendAIChatResponseResponse) Reset() {
+	*x = SendAIChatResponseResponse{}
+	mi := &file_project_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendAIChatResponseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendAIChatResponseResponse) ProtoMessage() {}
+
+func (x *SendAIChatResponseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_project_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendAIChatResponseResponse.ProtoReflect.Descriptor instead.
+func (*SendAIChatResponseResponse) Descriptor() ([]byte, []int) {
+	return file_project_proto_rawDescGZIP(), []int{1}
+}
+
+// One AI chat event pushed by Java to the Go AI microservice.
+type AIEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIEvent) Reset() {
+	*x = AIEvent{}
+	mi := &file_project_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIEvent) ProtoMessage() {}
+
+func (x *AIEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_project_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIEvent.ProtoReflect.Descriptor instead.
+func (*AIEvent) Descriptor() ([]byte, []int) {
+	return file_project_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AIEvent) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *AIEvent) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AIEvent) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
 type Project struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -34,7 +169,7 @@ type Project struct {
 
 func (x *Project) Reset() {
 	*x = Project{}
-	mi := &file_project_proto_msgTypes[0]
+	mi := &file_project_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +181,7 @@ func (x *Project) String() string {
 func (*Project) ProtoMessage() {}
 
 func (x *Project) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[0]
+	mi := &file_project_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +194,7 @@ func (x *Project) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Project.ProtoReflect.Descriptor instead.
 func (*Project) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{0}
+	return file_project_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Project) GetId() string {
@@ -108,7 +243,7 @@ type Tag struct {
 
 func (x *Tag) Reset() {
 	*x = Tag{}
-	mi := &file_project_proto_msgTypes[1]
+	mi := &file_project_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -120,7 +255,7 @@ func (x *Tag) String() string {
 func (*Tag) ProtoMessage() {}
 
 func (x *Tag) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[1]
+	mi := &file_project_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -133,7 +268,7 @@ func (x *Tag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tag.ProtoReflect.Descriptor instead.
 func (*Tag) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{1}
+	return file_project_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Tag) GetId() string {
@@ -173,7 +308,7 @@ type Task struct {
 
 func (x *Task) Reset() {
 	*x = Task{}
-	mi := &file_project_proto_msgTypes[2]
+	mi := &file_project_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -185,7 +320,7 @@ func (x *Task) String() string {
 func (*Task) ProtoMessage() {}
 
 func (x *Task) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[2]
+	mi := &file_project_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -198,7 +333,7 @@ func (x *Task) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Task.ProtoReflect.Descriptor instead.
 func (*Task) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{2}
+	return file_project_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Task) GetId() string {
@@ -270,7 +405,7 @@ type Column struct {
 
 func (x *Column) Reset() {
 	*x = Column{}
-	mi := &file_project_proto_msgTypes[3]
+	mi := &file_project_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -282,7 +417,7 @@ func (x *Column) String() string {
 func (*Column) ProtoMessage() {}
 
 func (x *Column) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[3]
+	mi := &file_project_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -295,7 +430,7 @@ func (x *Column) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Column.ProtoReflect.Descriptor instead.
 func (*Column) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{3}
+	return file_project_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Column) GetId() string {
@@ -342,7 +477,7 @@ type UserProjectsRequest struct {
 
 func (x *UserProjectsRequest) Reset() {
 	*x = UserProjectsRequest{}
-	mi := &file_project_proto_msgTypes[4]
+	mi := &file_project_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -354,7 +489,7 @@ func (x *UserProjectsRequest) String() string {
 func (*UserProjectsRequest) ProtoMessage() {}
 
 func (x *UserProjectsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[4]
+	mi := &file_project_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -367,7 +502,7 @@ func (x *UserProjectsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserProjectsRequest.ProtoReflect.Descriptor instead.
 func (*UserProjectsRequest) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{4}
+	return file_project_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UserProjectsRequest) GetUserId() string {
@@ -386,7 +521,7 @@ type UserProjectsResponse struct {
 
 func (x *UserProjectsResponse) Reset() {
 	*x = UserProjectsResponse{}
-	mi := &file_project_proto_msgTypes[5]
+	mi := &file_project_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -398,7 +533,7 @@ func (x *UserProjectsResponse) String() string {
 func (*UserProjectsResponse) ProtoMessage() {}
 
 func (x *UserProjectsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[5]
+	mi := &file_project_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -411,7 +546,7 @@ func (x *UserProjectsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserProjectsResponse.ProtoReflect.Descriptor instead.
 func (*UserProjectsResponse) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{5}
+	return file_project_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UserProjectsResponse) GetProjects() []*Project {
@@ -430,7 +565,7 @@ type ProjectBoardRequest struct {
 
 func (x *ProjectBoardRequest) Reset() {
 	*x = ProjectBoardRequest{}
-	mi := &file_project_proto_msgTypes[6]
+	mi := &file_project_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +577,7 @@ func (x *ProjectBoardRequest) String() string {
 func (*ProjectBoardRequest) ProtoMessage() {}
 
 func (x *ProjectBoardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[6]
+	mi := &file_project_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +590,7 @@ func (x *ProjectBoardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProjectBoardRequest.ProtoReflect.Descriptor instead.
 func (*ProjectBoardRequest) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{6}
+	return file_project_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ProjectBoardRequest) GetProjectId() string {
@@ -475,7 +610,7 @@ type ProjectBoardResponse struct {
 
 func (x *ProjectBoardResponse) Reset() {
 	*x = ProjectBoardResponse{}
-	mi := &file_project_proto_msgTypes[7]
+	mi := &file_project_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -487,7 +622,7 @@ func (x *ProjectBoardResponse) String() string {
 func (*ProjectBoardResponse) ProtoMessage() {}
 
 func (x *ProjectBoardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[7]
+	mi := &file_project_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -500,7 +635,7 @@ func (x *ProjectBoardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProjectBoardResponse.ProtoReflect.Descriptor instead.
 func (*ProjectBoardResponse) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{7}
+	return file_project_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ProjectBoardResponse) GetTitle() string {
@@ -526,7 +661,7 @@ type TaskBlueprintRequest struct {
 
 func (x *TaskBlueprintRequest) Reset() {
 	*x = TaskBlueprintRequest{}
-	mi := &file_project_proto_msgTypes[8]
+	mi := &file_project_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -538,7 +673,7 @@ func (x *TaskBlueprintRequest) String() string {
 func (*TaskBlueprintRequest) ProtoMessage() {}
 
 func (x *TaskBlueprintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[8]
+	mi := &file_project_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -551,7 +686,7 @@ func (x *TaskBlueprintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskBlueprintRequest.ProtoReflect.Descriptor instead.
 func (*TaskBlueprintRequest) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{8}
+	return file_project_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *TaskBlueprintRequest) GetProjectId() string {
@@ -575,7 +710,7 @@ type TaskBlueprintResponse struct {
 
 func (x *TaskBlueprintResponse) Reset() {
 	*x = TaskBlueprintResponse{}
-	mi := &file_project_proto_msgTypes[9]
+	mi := &file_project_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -587,7 +722,7 @@ func (x *TaskBlueprintResponse) String() string {
 func (*TaskBlueprintResponse) ProtoMessage() {}
 
 func (x *TaskBlueprintResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[9]
+	mi := &file_project_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -600,7 +735,7 @@ func (x *TaskBlueprintResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskBlueprintResponse.ProtoReflect.Descriptor instead.
 func (*TaskBlueprintResponse) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{9}
+	return file_project_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *TaskBlueprintResponse) GetTitle() string {
@@ -656,7 +791,7 @@ type TagOption struct {
 
 func (x *TagOption) Reset() {
 	*x = TagOption{}
-	mi := &file_project_proto_msgTypes[10]
+	mi := &file_project_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -668,7 +803,7 @@ func (x *TagOption) String() string {
 func (*TagOption) ProtoMessage() {}
 
 func (x *TagOption) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[10]
+	mi := &file_project_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -681,7 +816,7 @@ func (x *TagOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TagOption.ProtoReflect.Descriptor instead.
 func (*TagOption) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{10}
+	return file_project_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *TagOption) GetId() string {
@@ -716,7 +851,7 @@ type ColumnOption struct {
 
 func (x *ColumnOption) Reset() {
 	*x = ColumnOption{}
-	mi := &file_project_proto_msgTypes[11]
+	mi := &file_project_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -728,7 +863,7 @@ func (x *ColumnOption) String() string {
 func (*ColumnOption) ProtoMessage() {}
 
 func (x *ColumnOption) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[11]
+	mi := &file_project_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -741,7 +876,7 @@ func (x *ColumnOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColumnOption.ProtoReflect.Descriptor instead.
 func (*ColumnOption) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{11}
+	return file_project_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ColumnOption) GetId() string {
@@ -774,7 +909,7 @@ type PriorityOption struct {
 
 func (x *PriorityOption) Reset() {
 	*x = PriorityOption{}
-	mi := &file_project_proto_msgTypes[12]
+	mi := &file_project_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -786,7 +921,7 @@ func (x *PriorityOption) String() string {
 func (*PriorityOption) ProtoMessage() {}
 
 func (x *PriorityOption) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[12]
+	mi := &file_project_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -799,7 +934,7 @@ func (x *PriorityOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PriorityOption.ProtoReflect.Descriptor instead.
 func (*PriorityOption) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{12}
+	return file_project_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *PriorityOption) GetPriority() string {
@@ -825,7 +960,7 @@ type CreateTaskRequest struct {
 
 func (x *CreateTaskRequest) Reset() {
 	*x = CreateTaskRequest{}
-	mi := &file_project_proto_msgTypes[13]
+	mi := &file_project_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -837,7 +972,7 @@ func (x *CreateTaskRequest) String() string {
 func (*CreateTaskRequest) ProtoMessage() {}
 
 func (x *CreateTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[13]
+	mi := &file_project_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -850,7 +985,7 @@ func (x *CreateTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTaskRequest.ProtoReflect.Descriptor instead.
 func (*CreateTaskRequest) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{13}
+	return file_project_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreateTaskRequest) GetProjectId() string {
@@ -925,7 +1060,7 @@ type CreateTaskResponse struct {
 
 func (x *CreateTaskResponse) Reset() {
 	*x = CreateTaskResponse{}
-	mi := &file_project_proto_msgTypes[14]
+	mi := &file_project_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -937,7 +1072,7 @@ func (x *CreateTaskResponse) String() string {
 func (*CreateTaskResponse) ProtoMessage() {}
 
 func (x *CreateTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[14]
+	mi := &file_project_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -950,7 +1085,7 @@ func (x *CreateTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTaskResponse.ProtoReflect.Descriptor instead.
 func (*CreateTaskResponse) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{14}
+	return file_project_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreateTaskResponse) GetId() string {
@@ -1019,7 +1154,7 @@ type CreateColumnRequest struct {
 
 func (x *CreateColumnRequest) Reset() {
 	*x = CreateColumnRequest{}
-	mi := &file_project_proto_msgTypes[15]
+	mi := &file_project_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1031,7 +1166,7 @@ func (x *CreateColumnRequest) String() string {
 func (*CreateColumnRequest) ProtoMessage() {}
 
 func (x *CreateColumnRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[15]
+	mi := &file_project_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1044,7 +1179,7 @@ func (x *CreateColumnRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateColumnRequest.ProtoReflect.Descriptor instead.
 func (*CreateColumnRequest) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{15}
+	return file_project_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CreateColumnRequest) GetProjectId() string {
@@ -1073,7 +1208,7 @@ type CreateColumnResponse struct {
 
 func (x *CreateColumnResponse) Reset() {
 	*x = CreateColumnResponse{}
-	mi := &file_project_proto_msgTypes[16]
+	mi := &file_project_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1085,7 +1220,7 @@ func (x *CreateColumnResponse) String() string {
 func (*CreateColumnResponse) ProtoMessage() {}
 
 func (x *CreateColumnResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_project_proto_msgTypes[16]
+	mi := &file_project_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1098,7 +1233,7 @@ func (x *CreateColumnResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateColumnResponse.ProtoReflect.Descriptor instead.
 func (*CreateColumnResponse) Descriptor() ([]byte, []int) {
-	return file_project_proto_rawDescGZIP(), []int{16}
+	return file_project_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CreateColumnResponse) GetId() string {
@@ -1133,7 +1268,14 @@ var File_project_proto protoreflect.FileDescriptor
 
 const file_project_proto_rawDesc = "" +
 	"\n" +
-	"\rproject.proto\x12\aproject\"\x87\x01\n" +
+	"\rproject.proto\x12\aproject\"\x19\n" +
+	"\x17AIEventSubscribeRequest\"\x1c\n" +
+	"\x1aSendAIChatResponseResponse\"[\n" +
+	"\aAIEvent\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\"\x87\x01\n" +
 	"\aProject\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
@@ -1217,14 +1359,16 @@ const file_project_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05color\x18\x03 \x01(\tR\x05color\x12\x1a\n" +
-	"\bposition\x18\x04 \x01(\tR\bposition2\xa2\x03\n" +
+	"\bposition\x18\x04 \x01(\tR\bposition2\xba\x04\n" +
 	"\x12ProjectGrpcService\x12N\n" +
 	"\x0fGetUserProjects\x12\x1c.project.UserProjectsRequest\x1a\x1d.project.UserProjectsResponse\x12N\n" +
 	"\x0fGetProjectBoard\x12\x1c.project.ProjectBoardRequest\x1a\x1d.project.ProjectBoardResponse\x12X\n" +
 	"\x17GetProjectTaskBlueprint\x12\x1d.project.TaskBlueprintRequest\x1a\x1e.project.TaskBlueprintResponse\x12E\n" +
 	"\n" +
 	"CreateTask\x12\x1a.project.CreateTaskRequest\x1a\x1b.project.CreateTaskResponse\x12K\n" +
-	"\fCreateColumn\x12\x1c.project.CreateColumnRequest\x1a\x1d.project.CreateColumnResponseBJ\n" +
+	"\fCreateColumn\x12\x1c.project.CreateColumnRequest\x1a\x1d.project.CreateColumnResponse\x12I\n" +
+	"\x11SubscribeAIEvents\x12 .project.AIEventSubscribeRequest\x1a\x10.project.AIEvent0\x01\x12K\n" +
+	"\x12SendAIChatResponse\x12\x10.project.AIEvent\x1a#.project.SendAIChatResponseResponseBJ\n" +
 	"\x1dhelper.project.planner_helperP\x01Z'github.com/dragonfarm/SoloPlanner/protob\x06proto3"
 
 var (
@@ -1239,47 +1383,54 @@ func file_project_proto_rawDescGZIP() []byte {
 	return file_project_proto_rawDescData
 }
 
-var file_project_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_project_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_project_proto_goTypes = []any{
-	(*Project)(nil),               // 0: project.Project
-	(*Tag)(nil),                   // 1: project.Tag
-	(*Task)(nil),                  // 2: project.Task
-	(*Column)(nil),                // 3: project.Column
-	(*UserProjectsRequest)(nil),   // 4: project.UserProjectsRequest
-	(*UserProjectsResponse)(nil),  // 5: project.UserProjectsResponse
-	(*ProjectBoardRequest)(nil),   // 6: project.ProjectBoardRequest
-	(*ProjectBoardResponse)(nil),  // 7: project.ProjectBoardResponse
-	(*TaskBlueprintRequest)(nil),  // 8: project.TaskBlueprintRequest
-	(*TaskBlueprintResponse)(nil), // 9: project.TaskBlueprintResponse
-	(*TagOption)(nil),             // 10: project.TagOption
-	(*ColumnOption)(nil),          // 11: project.ColumnOption
-	(*PriorityOption)(nil),        // 12: project.PriorityOption
-	(*CreateTaskRequest)(nil),     // 13: project.CreateTaskRequest
-	(*CreateTaskResponse)(nil),    // 14: project.CreateTaskResponse
-	(*CreateColumnRequest)(nil),   // 15: project.CreateColumnRequest
-	(*CreateColumnResponse)(nil),  // 16: project.CreateColumnResponse
+	(*AIEventSubscribeRequest)(nil),    // 0: project.AIEventSubscribeRequest
+	(*SendAIChatResponseResponse)(nil), // 1: project.SendAIChatResponseResponse
+	(*AIEvent)(nil),                    // 2: project.AIEvent
+	(*Project)(nil),                    // 3: project.Project
+	(*Tag)(nil),                        // 4: project.Tag
+	(*Task)(nil),                       // 5: project.Task
+	(*Column)(nil),                     // 6: project.Column
+	(*UserProjectsRequest)(nil),        // 7: project.UserProjectsRequest
+	(*UserProjectsResponse)(nil),       // 8: project.UserProjectsResponse
+	(*ProjectBoardRequest)(nil),        // 9: project.ProjectBoardRequest
+	(*ProjectBoardResponse)(nil),       // 10: project.ProjectBoardResponse
+	(*TaskBlueprintRequest)(nil),       // 11: project.TaskBlueprintRequest
+	(*TaskBlueprintResponse)(nil),      // 12: project.TaskBlueprintResponse
+	(*TagOption)(nil),                  // 13: project.TagOption
+	(*ColumnOption)(nil),               // 14: project.ColumnOption
+	(*PriorityOption)(nil),             // 15: project.PriorityOption
+	(*CreateTaskRequest)(nil),          // 16: project.CreateTaskRequest
+	(*CreateTaskResponse)(nil),         // 17: project.CreateTaskResponse
+	(*CreateColumnRequest)(nil),        // 18: project.CreateColumnRequest
+	(*CreateColumnResponse)(nil),       // 19: project.CreateColumnResponse
 }
 var file_project_proto_depIdxs = []int32{
-	1,  // 0: project.Task.tags:type_name -> project.Tag
-	2,  // 1: project.Column.tasks:type_name -> project.Task
-	0,  // 2: project.UserProjectsResponse.projects:type_name -> project.Project
-	3,  // 3: project.ProjectBoardResponse.columns:type_name -> project.Column
-	10, // 4: project.TaskBlueprintResponse.tag_options:type_name -> project.TagOption
-	11, // 5: project.TaskBlueprintResponse.column_options:type_name -> project.ColumnOption
-	12, // 6: project.TaskBlueprintResponse.priority_options:type_name -> project.PriorityOption
-	1,  // 7: project.CreateTaskResponse.tags:type_name -> project.Tag
-	4,  // 8: project.ProjectGrpcService.GetUserProjects:input_type -> project.UserProjectsRequest
-	6,  // 9: project.ProjectGrpcService.GetProjectBoard:input_type -> project.ProjectBoardRequest
-	8,  // 10: project.ProjectGrpcService.GetProjectTaskBlueprint:input_type -> project.TaskBlueprintRequest
-	13, // 11: project.ProjectGrpcService.CreateTask:input_type -> project.CreateTaskRequest
-	15, // 12: project.ProjectGrpcService.CreateColumn:input_type -> project.CreateColumnRequest
-	5,  // 13: project.ProjectGrpcService.GetUserProjects:output_type -> project.UserProjectsResponse
-	7,  // 14: project.ProjectGrpcService.GetProjectBoard:output_type -> project.ProjectBoardResponse
-	9,  // 15: project.ProjectGrpcService.GetProjectTaskBlueprint:output_type -> project.TaskBlueprintResponse
-	14, // 16: project.ProjectGrpcService.CreateTask:output_type -> project.CreateTaskResponse
-	16, // 17: project.ProjectGrpcService.CreateColumn:output_type -> project.CreateColumnResponse
-	13, // [13:18] is the sub-list for method output_type
-	8,  // [8:13] is the sub-list for method input_type
+	4,  // 0: project.Task.tags:type_name -> project.Tag
+	5,  // 1: project.Column.tasks:type_name -> project.Task
+	3,  // 2: project.UserProjectsResponse.projects:type_name -> project.Project
+	6,  // 3: project.ProjectBoardResponse.columns:type_name -> project.Column
+	13, // 4: project.TaskBlueprintResponse.tag_options:type_name -> project.TagOption
+	14, // 5: project.TaskBlueprintResponse.column_options:type_name -> project.ColumnOption
+	15, // 6: project.TaskBlueprintResponse.priority_options:type_name -> project.PriorityOption
+	4,  // 7: project.CreateTaskResponse.tags:type_name -> project.Tag
+	7,  // 8: project.ProjectGrpcService.GetUserProjects:input_type -> project.UserProjectsRequest
+	9,  // 9: project.ProjectGrpcService.GetProjectBoard:input_type -> project.ProjectBoardRequest
+	11, // 10: project.ProjectGrpcService.GetProjectTaskBlueprint:input_type -> project.TaskBlueprintRequest
+	16, // 11: project.ProjectGrpcService.CreateTask:input_type -> project.CreateTaskRequest
+	18, // 12: project.ProjectGrpcService.CreateColumn:input_type -> project.CreateColumnRequest
+	0,  // 13: project.ProjectGrpcService.SubscribeAIEvents:input_type -> project.AIEventSubscribeRequest
+	2,  // 14: project.ProjectGrpcService.SendAIChatResponse:input_type -> project.AIEvent
+	8,  // 15: project.ProjectGrpcService.GetUserProjects:output_type -> project.UserProjectsResponse
+	10, // 16: project.ProjectGrpcService.GetProjectBoard:output_type -> project.ProjectBoardResponse
+	12, // 17: project.ProjectGrpcService.GetProjectTaskBlueprint:output_type -> project.TaskBlueprintResponse
+	17, // 18: project.ProjectGrpcService.CreateTask:output_type -> project.CreateTaskResponse
+	19, // 19: project.ProjectGrpcService.CreateColumn:output_type -> project.CreateColumnResponse
+	2,  // 20: project.ProjectGrpcService.SubscribeAIEvents:output_type -> project.AIEvent
+	1,  // 21: project.ProjectGrpcService.SendAIChatResponse:output_type -> project.SendAIChatResponseResponse
+	15, // [15:22] is the sub-list for method output_type
+	8,  // [8:15] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -1296,7 +1447,7 @@ func file_project_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_project_proto_rawDesc), len(file_project_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

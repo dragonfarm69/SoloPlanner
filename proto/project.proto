@@ -25,12 +25,15 @@ service ProjectGrpcService {
   // AI microservice calls this once to subscribe to AI chat events.
   // Java streams AIEvent messages whenever a user sends an AI chat message.
   rpc SubscribeAIEvents (AIEventSubscribeRequest) returns (stream AIEvent);
+  rpc SendAIChatResponse (AIEvent) returns (SendAIChatResponseResponse);
 }
 
 // ── AI Event Streaming ───────────────────────────────────────────────────────
 
 // Empty request — the stream stays open until the client disconnects.
 message AIEventSubscribeRequest {}
+// Empty response
+message SendAIChatResponseResponse {}
 
 // One AI chat event pushed by Java to the Go AI microservice.
 message AIEvent {

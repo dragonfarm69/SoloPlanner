@@ -27,6 +27,8 @@ import helper.project.planner_helper.Services.AIChatStreamService;
 import helper.project.planner_helper.Services.ProjectService;
 import helper.project.planner_helper.Services.TaskService;
 import helper.project.planner_helper.Types.Priority;
+import helper.project.planner_helper.SendAIChatResponseResponse;
+import helper.project.planner_helper.Handler.ProjectWebSocketHandler;
 import io.grpc.Context;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
@@ -37,12 +39,15 @@ public class ProjectGrpcHandler extends
         private final ProjectService projectService;
         private final TaskService taskService;
         private final AIChatStreamService aiChatStreamService;
+        private final ProjectWebSocketHandler projectWebSocketHandler;
 
         public ProjectGrpcHandler(ProjectService projectService, TaskService taskService,
-                        AIChatStreamService aiChatStreamService) {
+                        AIChatStreamService aiChatStreamService,
+                        ProjectWebSocketHandler projectWebSocketHandler) {
                 this.projectService = projectService;
                 this.taskService = taskService;
                 this.aiChatStreamService = aiChatStreamService;
+                this.projectWebSocketHandler = projectWebSocketHandler;
         }
 
         @Override
@@ -224,5 +229,28 @@ public class ProjectGrpcHandler extends
                 Context.current().withCancellation().addListener(
                                 context -> aiChatStreamService.clearObserver(),
                                 Runnable::run);
+        }
+
+        @Override
+        public void sendAIChatResponse(AIEvent request,
+                        StreamObserver<SendAIChatResponseResponse> repObserver) {
+                try {
+                        String projectId = request.getProjectId();
+                        String userId = request.getUserId();
+                        String content = request.getContent();
+
+                        helper.project.planner_helper.DTO.Events.EventPayload.AIMessage aiMessage = 
+                            new helper.project.planner_helper.DTO.Events.EventPayload.AIMessage(projectId, userId, content);
+
+                        projectWebSocketHandler.broadcastToUserInProject(
+                            UUID.fromString(projectId), userId, aiMessage);
+
+                        repObserver.onNext(SendAIChatResponseResponse.newBuilder().build());
+                        repObserver.onCompleted();
+                } catch (Exception e) {
+                        repObserver.onError(Status.INTERNAL
+                                        .withDescription("Failed to send AI chat response: " + e.getMessage())
+                                        .asRuntimeException());
+                }
         }
 }

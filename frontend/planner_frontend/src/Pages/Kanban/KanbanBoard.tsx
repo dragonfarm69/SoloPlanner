@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import type { Task, Column, Priority } from "../../types";
 import type { BoardDispatch } from "../../hooks/useBoard";
 import KanbanColumn from "./KanbanColumn";
+import AiChatPanel from "./AiChatPanel";
 import "./KanbanBoard.css";
 
 interface KanbanBoardProps {
@@ -40,6 +41,7 @@ export default function KanbanBoard({
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [newColumnColor, setNewColumnColor] = useState(COLUMN_COLORS[0]);
   const [newColumnCategory, setNewColumnCategory] = useState("TODO");
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -113,85 +115,104 @@ export default function KanbanBoard({
   }
 
   return (
-    <div className="kanban-board" id="kanban-board">
-      {sortedColumns.map((col, i) => (
-        <KanbanColumn
-          projectId={projectId}
-          key={col.id}
-          column={col}
-          index={i}
-          allColumns={columns}
-          tasks={getFilteredTasks(col.id)}
-          dispatch={dispatch}
-          onEditTask={onEditTask}
-          onAddTask={onAddTask}
-        />
-      ))}
-
-      {/* Add Column */}
-      {isAddingColumn ? (
-        <div className="add-column-form">
-          <div className="add-column-form-title">New Column</div>
-          <input
-            ref={inputRef}
-            className="add-column-form-input"
-            placeholder="Column name..."
-            value={newColumnTitle}
-            onChange={(e) => setNewColumnTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleAddColumn();
-              if (e.key === "Escape") setIsAddingColumn(false);
-            }}
-            aria-label="New column name"
+    <div className="kanban-board-wrapper">
+      <div className="kanban-board" id="kanban-board">
+        {sortedColumns.map((col, i) => (
+          <KanbanColumn
+            projectId={projectId}
+            key={col.id}
+            column={col}
+            index={i}
+            allColumns={columns}
+            tasks={getFilteredTasks(col.id)}
+            dispatch={dispatch}
+            onEditTask={onEditTask}
+            onAddTask={onAddTask}
           />
+        ))}
 
-          <select
-            value={newColumnCategory}
-            onChange={(e) => setNewColumnCategory(e.target.value)}
-            className="add-column-form-select"
-          >
-            <option value="TODO">Todo</option>
-            <option value="IN_PROGRESS">In progress</option>
-            <option value="DONE">Done</option>
-          </select>
+        {/* Add Column */}
+        {isAddingColumn ? (
+          <div className="add-column-form">
+            <div className="add-column-form-title">New Column</div>
+            <input
+              ref={inputRef}
+              className="add-column-form-input"
+              placeholder="Column name..."
+              value={newColumnTitle}
+              onChange={(e) => setNewColumnTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddColumn();
+                if (e.key === "Escape") setIsAddingColumn(false);
+              }}
+              aria-label="New column name"
+            />
 
-          <div className="add-column-color-row">
-            <span className="add-column-color-label">Color:</span>
-            <div className="add-column-color-options">
-              {COLUMN_COLORS.map((color) => (
-                <button
-                  key={color}
-                  className={`add-column-color-swatch ${newColumnColor === color ? "selected" : ""}`}
-                  style={{ background: color }}
-                  onClick={() => setNewColumnColor(color)}
-                  aria-label={`Select color ${color}`}
-                />
-              ))}
+            <select
+              value={newColumnCategory}
+              onChange={(e) => setNewColumnCategory(e.target.value)}
+              className="add-column-form-select"
+            >
+              <option value="TODO">Todo</option>
+              <option value="IN_PROGRESS">In progress</option>
+              <option value="DONE">Done</option>
+            </select>
+
+            <div className="add-column-color-row">
+              <span className="add-column-color-label">Color:</span>
+              <div className="add-column-color-options">
+                {COLUMN_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    className={`add-column-color-swatch ${newColumnColor === color ? "selected" : ""}`}
+                    style={{ background: color }}
+                    onClick={() => setNewColumnColor(color)}
+                    aria-label={`Select color ${color}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="add-column-form-actions">
+              <button className="btn-add-column" onClick={handleAddColumn}>
+                Add Column
+              </button>
+              <button
+                className="btn-cancel-column"
+                onClick={() => setIsAddingColumn(false)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
+        ) : (
+          <button
+            className="add-column-trigger"
+            onClick={() => setIsAddingColumn(true)}
+            id="add-column-btn"
+          >
+            <span className="add-column-trigger-icon" aria-hidden="true">
+              +
+            </span>
+            Add Column
+          </button>
+        )}
+      </div>
 
-          <div className="add-column-form-actions">
-            <button className="btn-add-column" onClick={handleAddColumn}>
-              Add Column
-            </button>
-            <button
-              className="btn-cancel-column"
-              onClick={() => setIsAddingColumn(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
+      <AiChatPanel
+        projectId={projectId}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
+
+      {!isChatOpen && (
         <button
-          className="add-column-trigger"
-          onClick={() => setIsAddingColumn(true)}
-          id="add-column-btn"
+          className="ai-chat-toggle-btn"
+          onClick={() => setIsChatOpen(true)}
+          aria-label="Open AI Assistant"
         >
-          <span className="add-column-trigger-icon" aria-hidden="true">
-            +
-          </span>
-          Add Column
+          <span className="ai-chat-toggle-icon">✦</span>
+          AI Assistant
         </button>
       )}
     </div>
