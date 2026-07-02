@@ -11,6 +11,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -35,17 +36,19 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
     private final ProjectRepository projectRepository;
     private final AIChatStreamService aiChatStreamService;
     private final ObjectMapper objectMapper;
+    private final RedisTemplate<String, String> redisTemplate;
 
     // Maps Project ID to the set of active WebSocket sessions subscribed to it
     private final ConcurrentHashMap<UUID, Set<WebSocketSession>> projectSessions = new ConcurrentHashMap<>();
 
     public ProjectWebSocketHandler(UserRepository userRepository,
-                                   ProjectRepository projectRepository,
-                                   AIChatStreamService aiChatStreamService) {
+            ProjectRepository projectRepository,
+            AIChatStreamService aiChatStreamService, RedisTemplate<String, String> redisTemplate) {
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.aiChatStreamService = aiChatStreamService;
         this.objectMapper = new ObjectMapper();
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -108,17 +111,25 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
-     * Broadcasts a payload event to all active sessions subscribed to the given project ID.
+     * Broadcasts a payload event to all active sessions subscribed to the given
+     * project ID.
      */
     public void broadcastToProject(UUID projectId, Object payload) {
-        Set<WebSocketSession> sessions = projectSessions.getOrDefault(projectId, Collections.emptySet());
-        if (sessions.isEmpty()) {
-            return;
-        }
-
         try {
             String jsonPayload = objectMapper.writeValueAsString(payload);
-            TextMessage textMessage = new TextMessage(jsonPayload);
+            redisTemplate.convertAndSend("project:" + projectId, jsonPayload);
+        } catch (Exception e) {
+            log.error("Failed to serialize broadcast payload for project {}", projectId, e);
+        }
+    }
+
+    public void onRedisMessage(String message, String channel) {
+        String projectId = channel.substring("project:".length());
+        try {
+            UUID projectUUID = UUID.fromString(projectId);
+            Set<WebSocketSession> sessions = projectSessions.getOrDefault(projectUUID, Collections.emptySet());
+
+            TextMessage textMessage = new TextMessage(message);
 
             for (WebSocketSession session : sessions) {
                 if (session.isOpen()) {
@@ -129,8 +140,8 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
                     }
                 }
             }
-        } catch (Exception e) {
-            log.error("Failed to serialize broadcast payload for project {}", projectId, e);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid project ID in Redis channel: {}", channel, e);
         }
     }
 
@@ -170,7 +181,8 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
             Base64.Decoder decoder = Base64.getUrlDecoder();
             String payload = new String(decoder.decode(chunks[1]));
 
-            Map<String, Object> payloadMap = objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> payloadMap = objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {
+            });
             String userId = (String) payloadMap.get("sub");
             if (userId == null) {
                 log.warn("Subject claim missing from JWT token");

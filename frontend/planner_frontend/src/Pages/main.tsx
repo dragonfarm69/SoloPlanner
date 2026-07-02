@@ -4,7 +4,6 @@ import BoardHeader from "../components/BoardHeader";
 import KanbanBoard from "./Kanban/KanbanBoard";
 import TagManagement from "../components/TagManagement";
 import TaskModal from "../components/TaskModal";
-import AiChatPanel from "../components/AiChatPanel";
 import { useMainPage } from "./useMainPage";
 
 export default function MainPage() {
@@ -12,8 +11,6 @@ export default function MainPage() {
     board,
     searchQuery,
     setSearchQuery,
-    isChatOpen,
-    setIsChatOpen,
     filterPriority,
     setFilterPriority,
     activeTab,
@@ -87,21 +84,6 @@ export default function MainPage() {
           onDelete={editingTask ? handleDeleteTask : undefined}
           onClose={handleCloseModal}
         />
-      )}
-
-      {/* AI Chat */}
-      {!isChatOpen && (
-        <button
-          className="chat-fab"
-          onClick={() => setIsChatOpen(true)}
-          aria-label="Open AI chat"
-          id="chat-fab"
-        >
-          ✦
-        </button>
-      )}
-      {isChatOpen && (
-        <AiChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
     </WsProvider>
   );

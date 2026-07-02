@@ -15,8 +15,6 @@ export interface UseMainPageResult {
   board: Board;
   searchQuery: string;
   setSearchQuery: Dispatch<SetStateAction<string>>;
-  isChatOpen: boolean;
-  setIsChatOpen: Dispatch<SetStateAction<boolean>>;
   filterPriority: Priority | null;
   setFilterPriority: Dispatch<SetStateAction<Priority | null>>;
   activeTab: "board" | "tags";
@@ -41,7 +39,6 @@ export function useMainPage(): UseMainPageResult {
 
   // ─── UI State ───────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [filterPriority, setFilterPriority] = useState<Priority | null>(null);
   const [activeTab, setActiveTab] = useState<"board" | "tags">("board");
 
@@ -331,8 +328,6 @@ export function useMainPage(): UseMainPageResult {
     board,
     searchQuery,
     setSearchQuery,
-    isChatOpen,
-    setIsChatOpen,
     filterPriority,
     setFilterPriority,
     activeTab,
