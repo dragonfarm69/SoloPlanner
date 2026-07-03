@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/dragonfarm/SoloPlanner/config"
 	"github.com/dragonfarm/SoloPlanner/tools"
@@ -155,6 +156,7 @@ func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- s
 		log.Printf("[orchestrator] session=%s iter=%d → Ollama", req.SessionID, iter)
 
 		var streamBuf strings.Builder
+		var streamChunks []string
 
 		log.Printf("[orchestrator] sending %d tool definitions", len(toolDefs))
 		for _, td := range toolDefs {
@@ -166,15 +168,8 @@ func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- s
 			llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 				text := string(chunk)
 				streamBuf.WriteString(text)
-				// Forward the token to the WebSocket writer.
-				// If the context is cancelled (e.g. client disconnected),
-				// stop streaming and propagate the cancellation upward.
-				select {
-				case tokenCh <- text:
-					return nil
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+				streamChunks = append(streamChunks, text)
+				return nil
 			}),
 		)
 		log.Printf("DEBUG: streamBuf=%q", streamBuf.String())
@@ -216,13 +211,16 @@ func (o *Orchestrator) Run(ctx context.Context, req RunRequest, tokenCh chan<- s
 		}
 
 		// ── Final answer branch ────────────────────────────────────────────
-		// Gemma produced a text response (no tool calls). The tokens have
-		// already been sent to tokenCh by the streaming callback above.
+		// Gemma produced a text response (no tool calls).
 		// Determine the canonical response text and persist it.
 		finalText := streamBuf.String()
 		if finalText == "" {
 			// Fallback for Ollama builds that don't stream the final answer.
 			finalText = choice.Content
+		}
+
+		if err := streamFinalResponse(ctx, tokenCh, streamChunks, finalText); err != nil {
+			return err
 		}
 
 		assistantMsg := llms.MessageContent{
@@ -388,6 +386,32 @@ func (o *Orchestrator) GenerateAndStoreContext(ctx context.Context, userID, proj
 
 	if err := o.vectorTools.UpsertMessageContext(ctx, userID, projectId, message, vector); err != nil {
 		return fmt.Errorf("GenerateAndStoreContext: upsert: %w", err)
+	}
+	return nil
+}
+
+// streamFinalResponse streams the final text response back to the client via tokenCh.
+// It sends the accumulated chunks with a tiny delay to simulate real-time typing,
+// falling back to sending the full text at once if no chunks were captured.
+func streamFinalResponse(ctx context.Context, tokenCh chan<- string, chunks []string, fallbackText string) error {
+	if len(chunks) > 0 {
+		for _, chunk := range chunks {
+			select {
+			case tokenCh <- chunk:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		return nil
+	}
+
+	if fallbackText != "" {
+		select {
+		case tokenCh <- fallbackText:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	return nil
 }

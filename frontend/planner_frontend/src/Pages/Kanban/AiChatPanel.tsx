@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useWsMessages } from "../../hooks/useWsMessages";
 import { wsService } from "../../services/WebsocketService";
+import ReactMarkdown from "react-markdown";
 import "./AiChatPanel.css";
 
 interface Message {
@@ -151,7 +152,9 @@ export default function AiChatPanel({
                 msg.sender === "user" ? "user-bubble" : "ai-bubble"
               }`}
             >
-              <div className="ai-chat-bubble-content">{msg.content}</div>
+              <div className="ai-chat-bubble-content">
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              </div>
               <div className="ai-chat-bubble-time">
                 {msg.timestamp.toLocaleTimeString([], {
                   hour: "2-digit",

@@ -100,7 +100,10 @@ class ProjectWebSocketService implements IWsService {
   private closeSocket(): void {
     if (!this.ws) return;
 
-    if (this.ws.readyState === WebSocket.OPEN) {
+    if (
+      this.ws.readyState === WebSocket.OPEN ||
+      this.ws.readyState === WebSocket.CONNECTING
+    ) {
       this.ws.close();
     }
     this.ws = null;
