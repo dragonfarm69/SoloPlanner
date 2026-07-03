@@ -239,11 +239,11 @@ public class ProjectGrpcHandler extends
                         String userId = request.getUserId();
                         String content = request.getContent();
 
-                        helper.project.planner_helper.DTO.Events.EventPayload.AIMessage aiMessage = 
-                            new helper.project.planner_helper.DTO.Events.EventPayload.AIMessage(projectId, userId, content);
+                        helper.project.planner_helper.DTO.Events.EventPayload.AIMessage aiMessage = new helper.project.planner_helper.DTO.Events.EventPayload.AIMessage(
+                                        projectId, userId, content);
 
                         projectWebSocketHandler.broadcastToUserInProject(
-                            UUID.fromString(projectId), userId, aiMessage);
+                                        UUID.fromString(projectId), userId, aiMessage);
 
                         repObserver.onNext(SendAIChatResponseResponse.newBuilder().build());
                         repObserver.onCompleted();

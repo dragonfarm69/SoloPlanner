@@ -188,6 +188,8 @@ public class TaskService {
             task.setUser(user);
         }
 
+        task.setIsArchived(request.isArchived());
+
         TaskEntity editedTask = this.taskRepository.save(task);
 
         // broad cast the event
@@ -279,4 +281,3 @@ public class TaskService {
         System.out.println("Broadcasting event: " + payload.getClass().getSimpleName() + " to project " + projectUUID);
     }
 }
-

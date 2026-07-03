@@ -238,8 +238,10 @@ public class ProjectService {
                 groupId);
     }
 
+    @Transactional(readOnly = true)
     public ProjectBoardResponse getProjectBoard(UUID projectId) {
-        ProjectEntity project = this.projectRepository.findById(projectId)
+        this.taskColumnRepository.findColumnsWithTasksByProjectId(projectId);
+        ProjectEntity project = this.projectRepository.findByIdWithColumns(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));
 
         ProjectBoardResponse payload = EntityMapper.mapToProjectBoardResponse(project);

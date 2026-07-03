@@ -116,10 +116,18 @@ export function useMainPage(): UseMainPageResult {
           return;
         }
 
-        dispatch({
-          type: "UPDATE_TASK",
-          payload: { id: editingTask.id, ...data },
-        });
+        if (data.isArchived) {
+          dispatch({
+            type: "DELETE_TASK",
+            payload: { id: editingTask.id },
+          });
+        } else {
+          dispatch({
+            type: "UPDATE_TASK",
+            payload: { id: editingTask.id, ...data },
+          });
+        }
+
         // If column changed, move the task
         if (data.columnId !== editingTask.columnId) {
           const destTasks = getColumnTasks(data.columnId);
@@ -206,6 +214,7 @@ export function useMainPage(): UseMainPageResult {
         });
 
         const data = await response.json();
+        console.log("DATA: ", data);
         const columns: Column[] = data.columns.map((col: any) => ({
           id: col.id,
           title: col.name, // "name" → "title"

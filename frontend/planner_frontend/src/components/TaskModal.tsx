@@ -202,6 +202,35 @@ export default function TaskModal({
     isArchived,
   ]);
 
+  const handleArchive = useCallback(() => {
+    if (!title.trim() || !deadline) return;
+
+    console.log("archiving: ", title);
+
+    onSave({
+      title: title.trim(),
+      description: description.trim(),
+      userId: selectedUserId,
+      priority,
+      tags: selectedTags,
+      columnId,
+      deadline,
+      isArchived: true,
+    });
+
+    onClose();
+  }, [
+    title,
+    description,
+    priority,
+    selectedTags,
+    columnId,
+    deadline,
+    onSave,
+    selectedUserId,
+    isArchived,
+  ]);
+
   const handleRemoveLabel = useCallback(
     (tag: Tag) => {
       setSelectedTags(selectedTags.filter((l) => l !== tag));
@@ -398,27 +427,6 @@ export default function TaskModal({
             )}
           </div>
 
-          {/* Archived */}
-          <div
-            className="form-group"
-            style={{ flexDirection: "row", alignItems: "center", gap: "10px" }}
-          >
-            <input
-              type="checkbox"
-              id="task-archived"
-              checked={isArchived}
-              onChange={(e) => setIsArchived(e.target.checked)}
-              style={{ width: "16px", height: "16px", cursor: "pointer" }}
-            />
-            <label
-              className="form-label"
-              htmlFor="task-archived"
-              style={{ cursor: "pointer", margin: 0 }}
-            >
-              Archive Task
-            </label>
-          </div>
-
           {/* Metadata */}
           {isEditing && (createdDate || lastEdited) && (
             <div
@@ -453,15 +461,25 @@ export default function TaskModal({
         <div className="modal-footer">
           <div className="modal-footer-left">
             {isEditing && onDelete && (
-              <button
-                className="btn-modal-delete"
-                onClick={() => {
-                  if (task) onDelete(task.id);
-                }}
-                id="btn-delete-task"
-              >
-                Delete
-              </button>
+              <>
+                <button
+                  className="btn-modal-delete"
+                  onClick={() => {
+                    if (task) onDelete(task.id);
+                  }}
+                  id="btn-delete-task"
+                >
+                  Delete
+                </button>
+
+                <button
+                  className="btn-modal-archive"
+                  onClick={handleArchive}
+                  id="btn-archive-task"
+                >
+                  Archive
+                </button>
+              </>
             )}
           </div>
           <div className="modal-footer-right">

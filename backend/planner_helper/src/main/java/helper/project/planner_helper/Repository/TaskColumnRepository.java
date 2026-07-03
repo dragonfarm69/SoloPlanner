@@ -18,4 +18,7 @@ public interface TaskColumnRepository extends JpaRepository<TaskColumn, UUID> {
         @Query("SELECT t FROM TaskColumn t WHERE t.project.id = :projectId ORDER BY t.position DESC LIMIT 1")
         Optional<TaskColumn> findLatestTaskColumnByProjectId(
                         @Param("projectId") UUID projectId);
+
+        @Query("SELECT c FROM TaskColumn c LEFT JOIN FETCH c.tasks WHERE c.project.id = :projectId")
+        List<TaskColumn> findColumnsWithTasksByProjectId(@Param("projectId") UUID projectId);
 }

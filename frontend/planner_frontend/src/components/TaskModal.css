@@ -227,6 +227,20 @@
   background: rgba(248, 113, 113, 0.2);
 }
 
+.btn-modal-archive {
+  padding: var(--space-2) var(--space-4);
+  background: rgba(8, 241, 167, 0.1);
+  color: var(--gradient-accent);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.btn-modal-archive:hover {
+  background: rgba(5, 234, 54, 0.2);
+}
+
 /* ─── Inline Spinner for Loading States ─── */
 .spinner-inline {
   display: inline-block;

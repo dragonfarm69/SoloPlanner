@@ -84,6 +84,10 @@ public class EntityMapper {
         List<TaskSummaryResponse> taskReponses = new ArrayList<TaskSummaryResponse>();
         if (column.getTasks() != null) {
             for (TaskEntity task : column.getTasks()) {
+                // skip archived task
+                if (task.getIsArchived()) {
+                    continue;
+                }
                 TaskSummaryResponse taskMapped = mapToTaskSummaryResponse(task);
                 taskReponses.add(taskMapped);
             }
