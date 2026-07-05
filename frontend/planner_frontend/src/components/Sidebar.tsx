@@ -8,8 +8,8 @@ interface SidebarProps {
   completedTasks: number;
   filterPriority: Priority | null;
   onFilterPriority: (priority: Priority | null) => void;
-  activeTab: "board" | "tags";
-  onTabChange: (tab: "board" | "tags") => void;
+  activeTab: "board" | "tags" | "archive";
+  onTabChange: (tab: "board" | "tags" | "archive") => void;
 }
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
@@ -78,7 +78,11 @@ export default function Sidebar({
           </span>
           Tags
         </button>
-        <button className="sidebar-nav-item" id="nav-archive" disabled>
+        <button
+          className={`sidebar-nav-item ${activeTab === "archive" ? "active" : ""}`}
+          id="nav-archive"
+          onClick={() => onTabChange("archive")}
+        >
           <span className="sidebar-nav-icon" aria-hidden="true">
             ▤
           </span>

@@ -73,6 +73,11 @@ export default function TaskModal({
     task?.isArchived ?? false,
   );
 
+  // Tracks which destructive action is pending confirmation: null | "delete" | "archive"
+  const [pendingAction, setPendingAction] = useState<
+    "delete" | "archive" | null
+  >(null);
+
   const titleRef = useRef<HTMLInputElement>(null);
   const isEditing = task !== null;
 
@@ -464,9 +469,7 @@ export default function TaskModal({
               <>
                 <button
                   className="btn-modal-delete"
-                  onClick={() => {
-                    if (task) onDelete(task.id);
-                  }}
+                  onClick={() => setPendingAction("delete")}
                   id="btn-delete-task"
                 >
                   Delete
@@ -474,7 +477,7 @@ export default function TaskModal({
 
                 <button
                   className="btn-modal-archive"
-                  onClick={handleArchive}
+                  onClick={() => setPendingAction("archive")}
                   id="btn-archive-task"
                 >
                   Archive
@@ -497,6 +500,62 @@ export default function TaskModal({
           </div>
         </div>
       </div>
+
+      {/* ── Confirmation popup ── */}
+      {pendingAction !== null && (
+        <div
+          className="confirm-overlay"
+          id="confirm-dialog-overlay"
+          onClick={() => setPendingAction(null)}
+        >
+          <div
+            className="confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="confirm-dialog-title"
+            aria-describedby="confirm-dialog-desc"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`confirm-dialog-icon ${pendingAction}`}>
+              {pendingAction === "delete" ? "🗑" : "▤"}
+            </div>
+
+            <h3 id="confirm-dialog-title" className="confirm-dialog-title">
+              {pendingAction === "delete" ? "Delete Task" : "Archive Task"}
+            </h3>
+
+            <p id="confirm-dialog-desc" className="confirm-dialog-message">
+              {pendingAction === "delete"
+                ? "This will permanently remove the task and cannot be undone."
+                : "This task will be moved to the archive and removed from the board."}
+            </p>
+
+            <div className="confirm-dialog-actions">
+              <button
+                className="btn-confirm-cancel"
+                id="btn-confirm-cancel"
+                onClick={() => setPendingAction(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className={`btn-confirm-ok ${pendingAction}`}
+                id={`btn-confirm-${pendingAction}`}
+                onClick={() => {
+                  if (pendingAction === "delete" && task) {
+                    onDelete(task.id);
+                  } else {
+                    handleArchive();
+                  }
+                  setPendingAction(null);
+                }}
+              >
+                {pendingAction === "delete" ? "Yes, delete" : "Yes, archive"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

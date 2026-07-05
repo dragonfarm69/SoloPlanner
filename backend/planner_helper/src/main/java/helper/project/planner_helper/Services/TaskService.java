@@ -146,6 +146,24 @@ public class TaskService {
         this.taskRepository.delete(task);
     }
 
+    public List<TaskSummaryResponse> getArchivedTask(String projectId) {
+        UUID projectUUID = EntityMapper.mapToUUID(projectId);
+
+        ProjectEntity projecEntity = this.projectRepository.findById(projectUUID)
+                .orElseThrow(() -> new RuntimeException("Project not found " + projectId));
+
+        List<TaskEntity> taskEntities = projecEntity.getTasks();
+
+        List<TaskSummaryResponse> taskSummaryResponses = new ArrayList<>();
+        for (TaskEntity taskEntity : taskEntities) {
+            if (taskEntity.getIsArchived()) {
+                TaskSummaryResponse response = EntityMapper.mapToTaskArchivedSummaryResponse(taskEntity);
+                taskSummaryResponses.add(response);
+            }
+        }
+        return taskSummaryResponses;
+    }
+
     @Transactional
     public TaskEntity editTask(String taskId, String projectId, String columnId, TaskEditRequest request) {
         UUID taskUUID = EntityMapper.mapToUUID(taskId);

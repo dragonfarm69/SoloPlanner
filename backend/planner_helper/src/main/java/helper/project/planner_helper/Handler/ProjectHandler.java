@@ -31,6 +31,7 @@ import helper.project.planner_helper.DTO.Events.ColumnResponse;
 import helper.project.planner_helper.DTO.Events.TagRequest;
 import helper.project.planner_helper.DTO.Events.TagResponse;
 import helper.project.planner_helper.DTO.Events.TaskResponse;
+import helper.project.planner_helper.DTO.Events.TaskSummaryResponse;
 import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Services.ProjectService;
 import helper.project.planner_helper.Services.TagService;
@@ -88,6 +89,11 @@ public class ProjectHandler {
     public TaskResponse getTaskInformation(@PathVariable("project_id") String projectId,
             @PathVariable("column_id") String columnId, @PathVariable("task_id") String taskId) {
         return this.taskService.getTask(projectId, columnId, taskId);
+    }
+
+    @GetMapping("/{project_id}/archived")
+    public List<TaskSummaryResponse> getArchivedTasks(@PathVariable("project_id") String projectId) {
+        return this.taskService.getArchivedTask(projectId);
     }
 
     @PostMapping("/{project_id}/{column_id}/tasks")

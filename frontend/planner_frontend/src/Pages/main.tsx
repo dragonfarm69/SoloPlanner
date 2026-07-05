@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import BoardHeader from "../components/BoardHeader";
 import KanbanBoard from "./Kanban/KanbanBoard";
 import TagManagement from "../components/TagManagement";
+import ArchivedTasksPage from "../components/ArchivedTasksPage";
 import TaskModal from "../components/TaskModal";
 import { useMainPage } from "./useMainPage";
 
@@ -68,8 +69,10 @@ export default function MainPage() {
               onAddTask={handleAddTaskToColumn}
             />
           </>
-        ) : (
+        ) : activeTab === "tags" ? (
           <TagManagement projectId={projectId!} />
+        ) : (
+          <ArchivedTasksPage projectId={projectId!} />
         )}
       </main>
 
