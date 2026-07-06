@@ -78,3 +78,36 @@ export interface Tag {
   name: string;
   color: string;
 }
+
+// ─── User Story ────────────────────────────────────────────────────────────────
+
+export type UserStoryStatus = "open" | "in_progress" | "done" | "archived";
+
+export interface UserStory {
+  id: string;                   // e.g. "US-101"
+  title: string;
+  /** Split narrative parts — "As a [role]…" */
+  roleContext: string;          // "As a…"
+  wantContext: string;          // "I want…"
+  benefitContext: string;       // "So that…"
+  description: string;
+  priority: Priority;
+  status: UserStoryStatus;
+  storyPoints?: number;         // optional; null/undefined means unestimated
+  taskCount: number;
+  completedTaskCount: number;
+  createdAt: string;            // ISO date string
+  editedAt: string;
+  parentId?: string;            // optional, for sub-stories
+}
+
+export const USER_STORY_STATUS_CONFIG: Record<
+  UserStoryStatus,
+  { label: string; color: string; bg: string }
+> = {
+  open:        { label: "Open",        color: "#60a5fa", bg: "rgba(96, 165, 250, 0.12)" },
+  in_progress: { label: "In Progress", color: "#fbbf24", bg: "rgba(251, 191, 36, 0.12)" },
+  done:        { label: "Done",        color: "#34d399", bg: "rgba(52, 211, 153, 0.12)" },
+  archived:    { label: "Archived",    color: "#5c5e72", bg: "rgba(92, 94, 114, 0.12)"  },
+};
+
