@@ -24,13 +24,25 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
                 // CHAT
                 @JsonSubTypes.Type(value = EventPayload.ChatMessage.class, name = "CHAT_ROOM_CREATED"),
                 @JsonSubTypes.Type(value = EventPayload.ChatMessage.class, name = "CHAT_ROOM"),
+
+                // PUB/SUB CONTROL
+                @JsonSubTypes.Type(value = EventPayload.SubscribeEvent.class, name = "SUBSCRIBE"),
+                @JsonSubTypes.Type(value = EventPayload.UnsubscribeEvent.class, name = "UNSUBSCRIBE"),
 })
 public sealed interface EventPayload
                 permits EventPayload.TaskCreatedEvent, EventPayload.TaskEditedEvent, EventPayload.TaskMovedEvent,
                 EventPayload.TaskDeletedEvent,
                 EventPayload.ColumnCreatedEvent, EventPayload.ColumnMovedEvent, EventPayload.ColumnDeletedEvent,
                 EventPayload.TagAddedEvent, EventPayload.TagCreatedEvent, EventPayload.AIMessage,
-                EventPayload.ChatMessage, EventPayload.ChatRoomCreated {
+                EventPayload.ChatMessage, EventPayload.ChatRoomCreated,
+                EventPayload.SubscribeEvent, EventPayload.UnsubscribeEvent {
+
+        // PUB/SUB CONTROL
+        record SubscribeEvent(String topic) implements EventPayload {
+        }
+
+        record UnsubscribeEvent(String topic) implements EventPayload {
+        }
 
         // TASK
         record TaskCreatedEvent(TaskSummaryResponse task) implements EventPayload {

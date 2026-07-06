@@ -8,6 +8,8 @@ export type WsMessageHandler = (data: unknown) => void;
 export interface IWsService {
   subscribe(handler: WsMessageHandler): () => void;
   sendMessage(payload: any): void;
+  subscribeTopic(topic: string): void;
+  unsubscribeTopic(topic: string): void;
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -26,6 +28,7 @@ class ProjectWebSocketService implements IWsService {
   }
   private currentProjectId: string | null = null;
   private listeners: Set<WsMessageHandler> = new Set();
+  private activeSubscribedTopics: Set<string> = new Set(["project"]);
 
   // ─── Lifecycle ──────────────────────────────
 
@@ -55,6 +58,12 @@ class ProjectWebSocketService implements IWsService {
       console.log(
         `[ProjectWebSocketService] Connected to project ${projectId}`,
       );
+      // Re-subscribe to all active topics on connection (excluding implicitly backend pre-subscribed "project")
+      this.activeSubscribedTopics.forEach((topic) => {
+        if (topic !== "project") {
+          this.sendMessage({ type: "SUBSCRIBE", topic });
+        }
+      });
     };
 
     ws.onmessage = (event: MessageEvent<string>) => {
@@ -81,6 +90,21 @@ class ProjectWebSocketService implements IWsService {
   disconnect(): void {
     this.closeSocket();
     this.currentProjectId = null;
+    this.activeSubscribedTopics = new Set(["project"]);
+  }
+
+  subscribeTopic(topic: string): void {
+    this.activeSubscribedTopics.add(topic);
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.sendMessage({ type: "SUBSCRIBE", topic });
+    }
+  }
+
+  unsubscribeTopic(topic: string): void {
+    this.activeSubscribedTopics.delete(topic);
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.sendMessage({ type: "UNSUBSCRIBE", topic });
+    }
   }
 
   // ─── Pub/Sub ────────────────────────────────

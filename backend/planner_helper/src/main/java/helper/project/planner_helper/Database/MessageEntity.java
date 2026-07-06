@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,9 +35,15 @@ public class MessageEntity {
     @Column(nullable = false)
     private MessageRole role;
 
-    @ManyToOne
-    @JoinColumn(name = "conversation_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conversation_id", nullable = true)
     private ConversationEntity conversation;
+
+    // nullable — a message belongs to either a conversation OR a group chat room,
+    // not both
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_chat_room_id", nullable = true)
+    private GroupChatRoomEntity groupChatRoom;
 
     @Column(nullable = false)
     private Instant createdDate;
@@ -77,6 +84,14 @@ public class MessageEntity {
 
     public void setConversation(ConversationEntity conversation) {
         this.conversation = conversation;
+    }
+
+    public GroupChatRoomEntity getGroupChatRoom() {
+        return groupChatRoom;
+    }
+
+    public void setGroupChatRoom(GroupChatRoomEntity groupChatRoom) {
+        this.groupChatRoom = groupChatRoom;
     }
 
     public Instant getCreatedDate() {

@@ -69,6 +69,12 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
 
         // Register session for the project
         projectSessions.computeIfAbsent(projectId, k -> new CopyOnWriteArraySet<>()).add(session);
+
+        // Pre-subscribe the session to "project" to maintain backwards compatibility
+        Set<String> subscriptions = ConcurrentHashMap.newKeySet();
+        subscriptions.add("project");
+        session.getAttributes().put("subscriptions", subscriptions);
+
         log.info("WebSocket connection established for session {} on project {}", session.getId(), projectId);
     }
 
@@ -88,11 +94,33 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
             if (inboundEvent instanceof EventPayload.AIMessage aiMessage) {
                 log.debug("Received AI message from user {} on project {}", userId, projectId);
                 aiChatStreamService.publish(projectId.toString(), userId, aiMessage.content());
+            } else if (inboundEvent instanceof EventPayload.SubscribeEvent subscribeEvent) {
+                handleSubscribe(session, subscribeEvent);
+            } else if (inboundEvent instanceof EventPayload.UnsubscribeEvent unsubscribeEvent) {
+                handleUnsubscribe(session, unsubscribeEvent);
             } else {
                 log.warn("Received unsupported inbound event type: {}", inboundEvent.getClass().getSimpleName());
             }
         } catch (Exception e) {
             log.error("Failed to parse inbound text message from session {}", session.getId(), e);
+        }
+    }
+
+    private void handleSubscribe(WebSocketSession session, EventPayload.SubscribeEvent event) {
+        @SuppressWarnings("unchecked")
+        Set<String> subscriptions = (Set<String>) session.getAttributes().get("subscriptions");
+        if (subscriptions != null) {
+            subscriptions.add(event.topic());
+            log.info("Session {} subscribed to topic: {}", session.getId(), event.topic());
+        }
+    }
+
+    private void handleUnsubscribe(WebSocketSession session, EventPayload.UnsubscribeEvent event) {
+        @SuppressWarnings("unchecked")
+        Set<String> subscriptions = (Set<String>) session.getAttributes().get("subscriptions");
+        if (subscriptions != null) {
+            subscriptions.remove(event.topic());
+            log.info("Session {} unsubscribed from topic: {}", session.getId(), event.topic());
         }
     }
 
@@ -134,15 +162,33 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
     }
 
     public void onRedisMessage(String message, String channel) {
-        String projectId = channel.substring("project:".length());
+        String targetId;
+        String topic;
+        if (channel.startsWith("project:")) {
+            topic = "project";
+            targetId = channel.substring("project:".length());
+        } else if (channel.startsWith("chat:")) {
+            topic = "chat";
+            targetId = channel.substring("chat:".length());
+        } else {
+            log.warn("Unknown channel prefix for message: {}", channel);
+            return;
+        }
+
         try {
-            UUID projectUUID = UUID.fromString(projectId);
+            UUID projectUUID = UUID.fromString(targetId);
             Set<WebSocketSession> sessions = projectSessions.getOrDefault(projectUUID, Collections.emptySet());
             EventPayload payload = objectMapper.readValue(message, EventPayload.class);
             TextMessage textMessage = new TextMessage(message);
 
             for (WebSocketSession session : sessions) {
                 if (session.isOpen()) {
+                    @SuppressWarnings("unchecked")
+                    Set<String> subscriptions = (Set<String>) session.getAttributes().get("subscriptions");
+                    if (subscriptions == null || !subscriptions.contains(topic)) {
+                        continue;
+                    }
+
                     // skip this session if it is not the target user id
                     // assume if the target user id exist
                     if (payload instanceof EventPayload.AIMessage aiMessage) {
@@ -160,7 +206,9 @@ public class ProjectWebSocketHandler extends TextWebSocketHandler {
                 }
             }
         } catch (IllegalArgumentException e) {
-            log.error("Invalid project ID in Redis channel: {}", channel, e);
+            log.error("Invalid ID format in Redis channel: {}", channel, e);
+        } catch (Exception e) {
+            log.error("Error processing Redis message on channel {}", channel, e);
         }
     }
 

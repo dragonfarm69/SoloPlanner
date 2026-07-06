@@ -67,6 +67,10 @@ public class TaskEntity {
     @Column(nullable = false)
     private boolean isArchived;
 
+    @ManyToOne
+    @JoinColumn(name = "user_story_id", nullable = true)
+    private UserStoryEntity userStory;
+
     //
     @PrePersist
     protected void onCreate() {
@@ -181,5 +185,13 @@ public class TaskEntity {
 
     public void setIsArchived(boolean isArchived) {
         this.isArchived = isArchived;
+    }
+
+    public UserStoryEntity getUserStory() {
+        return userStory;
+    }
+
+    public void setUserStory(UserStoryEntity userStory) {
+        this.userStory = userStory;
     }
 }
