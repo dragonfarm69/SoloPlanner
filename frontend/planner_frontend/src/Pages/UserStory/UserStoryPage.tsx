@@ -1,66 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { UserStory, Priority, UserStoryStatus } from "../../types";
 import { PRIORITY_CONFIG, USER_STORY_STATUS_CONFIG } from "../../types";
 import UserStoryModal from "./UserStoryModal";
+import type { UserStoryFormData } from "./UserStoryModal";
 import "./UserStoryPage.css";
 
 interface UserStoryPageProps {
   projectId: string;
 }
 
-// ─── Mock seed data ──────────────────────────────────────────────────────────
-// Replace with fetch() once backend endpoint is ready.
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const MOCK_STORIES: UserStory[] = [
-  {
-    id: "US-102",
-    title: "User Authentication",
-    roleContext: "registered user",
-    wantContext: "securely log in to the app",
-    benefitContext: "my data remains private",
-    description:
-      "Implement JWT-based auth with refresh tokens. Support email/password and future OAuth providers.",
-    priority: "high",
-    status: "in_progress",
-    storyPoints: 8,
-    taskCount: 2,
-    completedTaskCount: 1,
-    createdAt: "2026-10-01T08:00:00Z",
-    editedAt: "2026-10-24T12:00:00Z",
-  },
-  {
-    id: "US-105",
-    title: "Automated Report Generation",
-    roleContext: "project manager",
-    wantContext: "generate weekly progress reports",
-    benefitContext: "stakeholders stay informed",
-    description:
-      "PDF export of sprint metrics: velocity, burndown, open issues. Scheduled email delivery.",
-    priority: "medium",
-    status: "open",
-    storyPoints: undefined, // unestimated
-    taskCount: 2,
-    completedTaskCount: 0,
-    createdAt: "2026-10-15T09:00:00Z",
-    editedAt: "2026-11-02T11:00:00Z",
-  },
-  {
-    id: "US-108",
-    title: "Dark Mode Toggle",
-    roleContext: "accessible user",
-    wantContext: "switch between light and dark themes",
-    benefitContext: "I can reduce eye strain",
-    description:
-      "Use CSS variables and a persisted user preference. Respect OS-level prefers-color-scheme by default.",
-    priority: "low",
-    status: "done",
-    storyPoints: 3,
-    taskCount: 1,
-    completedTaskCount: 1,
-    createdAt: "2026-10-20T10:00:00Z",
-    editedAt: "2026-10-30T15:00:00Z",
-  },
-];
+function mapBackendStoryToFrontend(story: any): UserStory {
+  return {
+    ...story,
+    priority: (story.priority?.toLowerCase() || "medium") as Priority,
+    createdAt: story.createdAt,
+    editedAt: story.editedAt,
+  };
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -258,15 +216,131 @@ function StoryCard({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function UserStoryPage({
-  projectId: _projectId,
-}: UserStoryPageProps) {
-  const [stories, setStories] = useState<UserStory[]>(MOCK_STORIES);
+export default function UserStoryPage({ projectId }: UserStoryPageProps) {
+  const [stories, setStories] = useState<UserStory[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStory, setEditingStory] = useState<UserStory | undefined>(
     undefined,
   );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // ─── API Operations ───────────────────────────────────────
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    async function loadStories() {
+      setLoading(true);
+      setError(null);
+      try {
+        const url = `http://localhost:8081/projects/${projectId}/userstory`;
+        const res = await fetch(url, {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (!res.ok) throw new Error("Failed to fetch user stories");
+        const data = await res.json();
+        setStories(data.map(mapBackendStoryToFrontend));
+      } catch (err: any) {
+        setError(err.message || "An error occurred");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadStories();
+  }, [projectId]);
+
+  async function handleSaveStory(formData: UserStoryFormData) {
+    if (!projectId) return;
+
+    const payload = {
+      ...formData,
+      priority: formData.priority.toUpperCase(),
+    };
+
+    const isEditing = editingStory !== undefined;
+    const url = isEditing
+      ? `http://localhost:8081/projects/${projectId}/userstory/${editingStory.id}`
+      : `http://localhost:8081/projects/${projectId}/userstory`;
+
+    const res = await fetch(url, {
+      method: isEditing ? "PATCH" : "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to ${isEditing ? "update" : "create"} user story`,
+      );
+    }
+
+    const data = await res.json();
+    const saved = mapBackendStoryToFrontend(data);
+
+    setStories((prev) => {
+      const exists = prev.some((s) => s.id === saved.id);
+      return exists
+        ? prev.map((s) => (s.id === saved.id ? saved : s))
+        : [...prev, saved];
+    });
+  }
+
+  async function handleArchiveStory(id: string) {
+    if (!projectId) return;
+    const storyToArchive = stories.find((s) => s.id === id);
+    if (!storyToArchive) return;
+
+    const payload = {
+      title: storyToArchive.title,
+      roleContext: storyToArchive.roleContext,
+      wantContext: storyToArchive.wantContext,
+      benefitContext: storyToArchive.benefitContext,
+      description: storyToArchive.description,
+      priority: storyToArchive.priority.toUpperCase(),
+      status: "archived",
+      storyPoints: storyToArchive.storyPoints,
+      parentId: storyToArchive.parentId,
+    };
+
+    const url = `http://localhost:8081/projects/${projectId}/userstory/${id}`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to archive user story");
+    }
+
+    const data = await res.json();
+    const saved = mapBackendStoryToFrontend(data);
+
+    setStories((prev) => prev.map((s) => (s.id === id ? saved : s)));
+  }
+
+  async function handleDeleteStory(id: string) {
+    if (!projectId) return;
+
+    const url = `http://localhost:8081/projects/${projectId}/userstory/${id}`;
+    const res = await fetch(url, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to delete user story");
+    }
+
+    setStories((prev) => prev.filter((s) => s.id !== id));
+  }
 
   // ─── Handlers ─────────────────────────────────────────────
 
@@ -283,31 +357,6 @@ export default function UserStoryPage({
   function handleCloseModal() {
     setIsModalOpen(false);
     setEditingStory(undefined);
-  }
-
-  function handleSaveStory(saved: UserStory) {
-    setStories((prev) => {
-      const exists = prev.some((s) => s.id === saved.id);
-      return exists
-        ? prev.map((s) => (s.id === saved.id ? saved : s))
-        : [...prev, saved];
-    });
-  }
-
-  /** Marks a story as archived (keeps it in state but hidden from the list) */
-  function handleArchiveStory(id: string) {
-    setStories((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? { ...s, status: "archived", editedAt: new Date().toISOString() }
-          : s,
-      ),
-    );
-  }
-
-  /** Permanently removes a story from local state */
-  function handleDeleteStory(id: string) {
-    setStories((prev) => prev.filter((s) => s.id !== id));
   }
 
   // ─── Derived ──────────────────────────────────────────────
@@ -362,7 +411,18 @@ export default function UserStoryPage({
 
         {/* ── Content ── */}
         <div className="us-content">
-          {visibleStories.length === 0 ? (
+          {loading ? (
+            <div className="us-empty-state">
+              <span className="us-empty-icon">⏳</span>
+              <p className="us-empty-title">Loading user stories...</p>
+            </div>
+          ) : error ? (
+            <div className="us-empty-state">
+              <span className="us-empty-icon">⚠️</span>
+              <p className="us-empty-title">Error loading stories</p>
+              <p className="us-empty-subtitle">{error}</p>
+            </div>
+          ) : visibleStories.length === 0 ? (
             <div className="us-empty-state">
               <span className="us-empty-icon">📋</span>
               <p className="us-empty-title">No user stories yet</p>
@@ -440,6 +500,7 @@ export default function UserStoryPage({
       {isModalOpen && (
         <UserStoryModal
           story={editingStory}
+          stories={stories}
           onSave={handleSaveStory}
           onArchive={editingStory ? handleArchiveStory : undefined}
           onDelete={editingStory ? handleDeleteStory : undefined}

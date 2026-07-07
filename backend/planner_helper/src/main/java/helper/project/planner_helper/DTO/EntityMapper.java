@@ -15,6 +15,7 @@ import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.TagEntity;
 import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.TaskEntity;
+import helper.project.planner_helper.Database.UserStoryEntity;
 import helper.project.planner_helper.Database.UserEntity;
 
 public class EntityMapper {
@@ -244,5 +245,35 @@ public class EntityMapper {
                 group.getInviteCode(),
                 userResponses,
                 projectResponses);
+    }
+
+    public static UserStoryResponse mapToUserStoryResponse(UserStoryEntity story) {
+        int taskCount = 0;
+        int completedTaskCount = 0;
+        if (story.getTasks() != null) {
+            taskCount = story.getTasks().size();
+            completedTaskCount = (int) story.getTasks().stream()
+                    .filter(t -> t.getColumn() != null && t.getColumn().getCategory() == helper.project.planner_helper.Types.Category.DONE)
+                    .count();
+        }
+        
+        String parentId = story.getParent() != null ? story.getParent().getId().toString() : null;
+
+        return new UserStoryResponse(
+                story.getId().toString(),
+                story.getTitle(),
+                story.getRoleContext(),
+                story.getWantContext(),
+                story.getBenefitContext(),
+                story.getDescription(),
+                story.getPriority(),
+                story.getStatus(),
+                story.getStoryPoints(),
+                taskCount,
+                completedTaskCount,
+                story.getCreatedAt(),
+                story.getEditedAt(),
+                parentId
+        );
     }
 }

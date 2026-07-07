@@ -3,6 +3,7 @@ package helper.project.planner_helper.Database;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import helper.project.planner_helper.Types.Priority;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicUpdate;
@@ -20,8 +21,18 @@ public class UserStoryEntity {
     private UUID id;
 
     private String title;
-    private String context; // as a user I want ,......
     private String description; // extra description of the story
+
+    private String roleContext;
+    private String wantContext;
+    private String benefitContext;
+
+    @Enumerated(EnumType.STRING)
+    private Priority priority = Priority.MEDIUM;
+
+    private String status = "open";
+
+    private Integer storyPoints;
 
     // link to project
     @ManyToOne(fetch = FetchType.LAZY) // optional: lazy loading is usually best
@@ -74,14 +85,6 @@ public class UserStoryEntity {
 
     public void setTitle(String title) {
         this.title = title;
-    }
-
-    public String getContext() {
-        return context;
-    }
-
-    public void setContext(String context) {
-        this.context = context;
     }
 
     public String getDescription() {
@@ -154,6 +157,54 @@ public class UserStoryEntity {
 
     public void setArchived(boolean archived) {
         this.archived = archived;
+    }
+
+    public String getRoleContext() {
+        return roleContext;
+    }
+
+    public void setRoleContext(String roleContext) {
+        this.roleContext = roleContext;
+    }
+
+    public String getWantContext() {
+        return wantContext;
+    }
+
+    public void setWantContext(String wantContext) {
+        this.wantContext = wantContext;
+    }
+
+    public String getBenefitContext() {
+        return benefitContext;
+    }
+
+    public void setBenefitContext(String benefitContext) {
+        this.benefitContext = benefitContext;
+    }
+
+    public Priority getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Priority priority) {
+        this.priority = priority;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Integer getStoryPoints() {
+        return storyPoints;
+    }
+
+    public void setStoryPoints(Integer storyPoints) {
+        this.storyPoints = storyPoints;
     }
 
 }

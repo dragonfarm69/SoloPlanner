@@ -36,6 +36,9 @@ import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Services.ProjectService;
 import helper.project.planner_helper.Services.TagService;
 import helper.project.planner_helper.Services.TaskService;
+import helper.project.planner_helper.Services.UserStoryService;
+import helper.project.planner_helper.DTO.UserStoryRequest;
+import helper.project.planner_helper.DTO.UserStoryResponse;
 
 @RestController
 @RequestMapping("/projects")
@@ -43,11 +46,13 @@ public class ProjectHandler {
     private final TaskService taskService;
     private final ProjectService projectService;
     private final TagService tagService;
+    private final UserStoryService userStoryService;
 
-    public ProjectHandler(TaskService taskService, ProjectService projectService, TagService tagService) {
+    public ProjectHandler(TaskService taskService, ProjectService projectService, TagService tagService, UserStoryService userStoryService) {
         this.taskService = taskService;
         this.projectService = projectService;
         this.tagService = tagService;
+        this.userStoryService = userStoryService;
     }
 
     @GetMapping
@@ -155,6 +160,27 @@ public class ProjectHandler {
             @PathVariable("column_id") String columnId,
             @Validated @RequestBody ColumnPositionRequest request) {
         this.projectService.moveColumn(columnId, projectId, request);
+    }
+
+    @GetMapping("/{project_id}/userstory")
+    public List<UserStoryResponse> getStories(@PathVariable("project_id") String projectId) {
+        return this.userStoryService.getUserStories(projectId);
+    }
+
+    @PostMapping("/{project_id}/userstory")
+    public UserStoryResponse addStory(@PathVariable("project_id") String projectId, @Validated @RequestBody UserStoryRequest request) {
+        return this.userStoryService.createUserStory(projectId, request);
+    }
+
+    @PatchMapping("/{project_id}/userstory/{story_id}")
+    public UserStoryResponse editStory(@PathVariable("project_id") String projectId, @PathVariable("story_id") String storyId, @Validated @RequestBody UserStoryRequest request) {
+        return this.userStoryService.updateUserStory(storyId, request);
+    }
+
+    @DeleteMapping("/{project_id}/userstory/{story_id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteStory(@PathVariable("project_id") String projectId, @PathVariable("story_id") String storyId) {
+        this.userStoryService.deleteUserStory(storyId);
     }
 
     @DeleteMapping

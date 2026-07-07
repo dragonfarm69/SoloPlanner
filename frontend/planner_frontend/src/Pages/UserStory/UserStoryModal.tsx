@@ -2,11 +2,24 @@ import React, { useState, useEffect } from "react";
 import type { UserStory, UserStoryStatus, Priority } from "../../types";
 import { PRIORITY_CONFIG, USER_STORY_STATUS_CONFIG } from "../../types";
 
+export interface UserStoryFormData {
+  title: string;
+  roleContext: string;
+  wantContext: string;
+  benefitContext: string;
+  description: string;
+  priority: Priority;
+  status: UserStoryStatus;
+  storyPoints?: number;
+  parentId?: string;
+}
+
 interface UserStoryModalProps {
   story?: UserStory;
-  onSave: (story: UserStory) => void;
-  onArchive?: (id: string) => void;
-  onDelete?: (id: string) => void;
+  stories?: UserStory[];
+  onSave: (data: UserStoryFormData) => Promise<void>;
+  onArchive?: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -33,19 +46,21 @@ type FormState = {
   priority: Priority;
   status: UserStoryStatus;
   storyPoints: string; // stored as string in the form, parsed on save
+  parentId: string;
 };
 
 function buildForm(story?: UserStory): FormState {
   if (story) {
     return {
       title: story.title,
-      roleContext: story.roleContext,
-      wantContext: story.wantContext,
-      benefitContext: story.benefitContext,
-      description: story.description,
+      roleContext: story.roleContext || "",
+      wantContext: story.wantContext || "",
+      benefitContext: story.benefitContext || "",
+      description: story.description || "",
       priority: story.priority,
       status: story.status === "archived" ? "open" : story.status,
       storyPoints: story.storyPoints != null ? String(story.storyPoints) : "",
+      parentId: story.parentId || "",
     };
   }
   return {
@@ -57,6 +72,7 @@ function buildForm(story?: UserStory): FormState {
     priority: "medium",
     status: "open",
     storyPoints: "",
+    parentId: "",
   };
 }
 
@@ -70,10 +86,18 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-function ConfirmDialog({ message, confirmLabel, confirmClass, onConfirm, onCancel }: ConfirmDialogProps) {
+function ConfirmDialog({
+  message,
+  confirmLabel,
+  confirmClass,
+  onConfirm,
+  onCancel,
+}: ConfirmDialogProps) {
   // Close on Escape
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [onCancel]);
@@ -84,13 +108,21 @@ function ConfirmDialog({ message, confirmLabel, confirmClass, onConfirm, onCance
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="us-confirm-msg"
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
     >
       <div className="us-confirm-box">
-        <p id="us-confirm-msg" className="us-confirm-message">{message}</p>
+        <p id="us-confirm-msg" className="us-confirm-message">
+          {message}
+        </p>
         <div className="us-confirm-actions">
-          <button className="us-btn-cancel" onClick={onCancel}>Cancel</button>
-          <button className={confirmClass} onClick={onConfirm}>{confirmLabel}</button>
+          <button className="us-btn-cancel" onClick={onCancel}>
+            Cancel
+          </button>
+          <button className={confirmClass} onClick={onConfirm}>
+            {confirmLabel}
+          </button>
         </div>
       </div>
     </div>
@@ -118,21 +150,32 @@ function CustomSelect({ id, value, onChange, children }: CustomSelectProps) {
       >
         {children}
       </select>
-      <span className="us-select-arrow" aria-hidden="true">▾</span>
+      <span className="us-select-arrow" aria-hidden="true">
+        ▾
+      </span>
     </div>
   );
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export default function UserStoryModal({ story, onSave, onArchive, onDelete, onClose }: UserStoryModalProps) {
+export default function UserStoryModal({
+  story,
+  stories = [],
+  onSave,
+  onArchive,
+  onDelete,
+  onClose,
+}: UserStoryModalProps) {
   const isEditing = story !== undefined;
 
   const [form, setForm] = useState<FormState>(buildForm(story));
   const [confirm, setConfirm] = useState<"archive" | "delete" | null>(null);
 
   // Reset when story prop changes
-  useEffect(() => { setForm(buildForm(story)); }, [story]);
+  useEffect(() => {
+    setForm(buildForm(story));
+  }, [story]);
 
   // Close on Escape (only when no confirm dialog is open)
   useEffect(() => {
@@ -155,51 +198,42 @@ export default function UserStoryModal({ story, onSave, onArchive, onDelete, onC
     e.preventDefault();
     if (!form.title.trim()) return;
 
-    const now = nowIso();
-    const points = form.storyPoints.trim() === "" ? undefined : Number(form.storyPoints);
+    const points =
+      form.storyPoints.trim() === "" ? undefined : Number(form.storyPoints);
+    const parentVal = form.parentId.trim() === "" ? undefined : form.parentId;
 
-    const saved: UserStory = isEditing
-      ? {
-          ...story,
-          title: form.title,
-          roleContext: form.roleContext,
-          wantContext: form.wantContext,
-          benefitContext: form.benefitContext,
-          description: form.description,
-          priority: form.priority,
-          status: form.status,
-          storyPoints: points,
-          editedAt: now,
-        }
-      : {
-          id: generateId(),
-          taskCount: 0,
-          completedTaskCount: 0,
-          createdAt: now,
-          editedAt: now,
-          title: form.title,
-          roleContext: form.roleContext,
-          wantContext: form.wantContext,
-          benefitContext: form.benefitContext,
-          description: form.description,
-          priority: form.priority,
-          status: form.status,
-          storyPoints: points,
-        };
-
-    onSave(saved);
-    onClose();
+    onSave({
+      title: form.title,
+      roleContext: form.roleContext,
+      wantContext: form.wantContext,
+      benefitContext: form.benefitContext,
+      description: form.description,
+      priority: form.priority,
+      status: form.status,
+      storyPoints: points,
+      parentId: parentVal,
+    })
+      .then(() => {
+        onClose();
+      })
+      .catch((err) => {
+        console.error("Save failed:", err);
+      });
   }
 
   // ─── Danger action handlers ───────────────────────────────
 
   function handleConfirmArchive() {
-    if (story && onArchive) { onArchive(story.id); }
+    if (story && onArchive) {
+      onArchive(story.id);
+    }
     onClose();
   }
 
   function handleConfirmDelete() {
-    if (story && onDelete) { onDelete(story.id); }
+    if (story && onDelete) {
+      onDelete(story.id);
+    }
     onClose();
   }
 
@@ -212,21 +246,31 @@ export default function UserStoryModal({ story, onSave, onArchive, onDelete, onC
         role="dialog"
         aria-modal="true"
         aria-labelledby="us-modal-title"
-        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
       >
         <div className="us-modal">
-
           {/* ── Header ── */}
           <div className="us-modal-header">
             <h2 id="us-modal-title" className="us-modal-title">
               {isEditing ? "Edit User Story" : "New User Story"}
             </h2>
-            <button className="us-modal-close" onClick={onClose} aria-label="Close modal">✕</button>
+            <button
+              className="us-modal-close"
+              onClick={onClose}
+              aria-label="Close modal"
+            >
+              ✕
+            </button>
           </div>
 
           {/* ── Form ── */}
-          <form id="us-story-form" onSubmit={handleSubmit} className="us-modal-form">
-
+          <form
+            id="us-story-form"
+            onSubmit={handleSubmit}
+            className="us-modal-form"
+          >
             {/* Title */}
             <div className="us-form-group">
               <label htmlFor="us-input-title" className="us-form-label">
@@ -290,12 +334,17 @@ export default function UserStoryModal({ story, onSave, onArchive, onDelete, onC
                 </div>
               </div>
 
-              <span className="us-form-hint">Keep your narrative concise. Use the description box below for technical details.</span>
+              <span className="us-form-hint">
+                Keep your narrative concise. Use the description box below for
+                technical details.
+              </span>
             </div>
 
             {/* Description */}
             <div className="us-form-group">
-              <label htmlFor="us-input-description" className="us-form-label">Description</label>
+              <label htmlFor="us-input-description" className="us-form-label">
+                Description
+              </label>
               <textarea
                 id="us-input-description"
                 className="us-form-textarea"
@@ -310,7 +359,9 @@ export default function UserStoryModal({ story, onSave, onArchive, onDelete, onC
             {/* Story Points + Parent Story row */}
             <div className="us-form-row">
               <div className="us-form-group">
-                <label htmlFor="us-input-points" className="us-form-label">Story Points</label>
+                <label htmlFor="us-input-points" className="us-form-label">
+                  Story Points
+                </label>
                 <input
                   id="us-input-points"
                   className="us-form-input"
@@ -324,9 +375,24 @@ export default function UserStoryModal({ story, onSave, onArchive, onDelete, onC
               </div>
 
               <div className="us-form-group">
-                <label htmlFor="us-input-parent" className="us-form-label">Parent Story</label>
-                <CustomSelect id="us-input-parent" value="" onChange={() => {}}>
+                <label htmlFor="us-input-parent" className="us-form-label">
+                  Parent Story
+                </label>
+                <CustomSelect
+                  id="us-input-parent"
+                  value={form.parentId}
+                  onChange={(v) => set("parentId", v)}
+                >
                   <option value="">None (Epic)</option>
+                  {stories
+                    .filter(
+                      (s) => s.id !== story?.id && s.status !== "archived",
+                    )
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.title}
+                      </option>
+                    ))}
                 </CustomSelect>
               </div>
             </div>
@@ -334,24 +400,39 @@ export default function UserStoryModal({ story, onSave, onArchive, onDelete, onC
             {/* Priority + Status row */}
             <div className="us-form-row">
               <div className="us-form-group">
-                <label htmlFor="us-input-priority" className="us-form-label">Priority</label>
-                <CustomSelect id="us-input-priority" value={form.priority} onChange={(v) => set("priority", v)}>
+                <label htmlFor="us-input-priority" className="us-form-label">
+                  Priority
+                </label>
+                <CustomSelect
+                  id="us-input-priority"
+                  value={form.priority}
+                  onChange={(v) => set("priority", v)}
+                >
                   {PRIORITIES.map((p) => (
-                    <option key={p} value={p}>{PRIORITY_CONFIG[p].label}</option>
+                    <option key={p} value={p}>
+                      {PRIORITY_CONFIG[p].label}
+                    </option>
                   ))}
                 </CustomSelect>
               </div>
 
               <div className="us-form-group">
-                <label htmlFor="us-input-status" className="us-form-label">Status</label>
-                <CustomSelect id="us-input-status" value={form.status} onChange={(v) => set("status", v)}>
+                <label htmlFor="us-input-status" className="us-form-label">
+                  Status
+                </label>
+                <CustomSelect
+                  id="us-input-status"
+                  value={form.status}
+                  onChange={(v) => set("status", v)}
+                >
                   {ACTIVE_STATUSES.map((s) => (
-                    <option key={s} value={s}>{USER_STORY_STATUS_CONFIG[s].label}</option>
+                    <option key={s} value={s}>
+                      {USER_STORY_STATUS_CONFIG[s].label}
+                    </option>
                   ))}
                 </CustomSelect>
               </div>
             </div>
-
           </form>
 
           {/* ── Footer ── */}
@@ -385,13 +466,18 @@ export default function UserStoryModal({ story, onSave, onArchive, onDelete, onC
             )}
 
             <div className="us-modal-footer-right">
-              <button type="button" className="us-btn-cancel" onClick={onClose}>Cancel</button>
-              <button type="submit" form="us-story-form" className="us-btn-save">
+              <button type="button" className="us-btn-cancel" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="us-story-form"
+                className="us-btn-save"
+              >
                 {isEditing ? "Save Changes" : "Save Story"}
               </button>
             </div>
           </div>
-
         </div>
       </div>
 
