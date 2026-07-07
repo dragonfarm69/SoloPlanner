@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import type { UserStory, Priority, UserStoryStatus } from "../../types";
 import { PRIORITY_CONFIG, USER_STORY_STATUS_CONFIG } from "../../types";
 import UserStoryModal from "./UserStoryModal";
-import type { UserStoryFormData } from "./UserStoryModal";
+import type { UserStoryFormData, UserStoryDetails } from "./UserStoryModal";
 import "./UserStoryPage.css";
 
 interface UserStoryPageProps {
@@ -36,8 +36,9 @@ function buildContextPreview(story: UserStory): string {
   const parts = [
     story.roleContext && `As a ${story.roleContext}`,
     story.wantContext && `I want ${story.wantContext}`,
+    story.benefitContext && `So that ${story.benefitContext}`,
   ].filter(Boolean);
-  return parts.join(", ") + (parts.length ? "…" : "");
+  return parts.join(", ") + (parts.length ? "" : "...");
 }
 
 function buildProgressPercent(completed: number, total: number): number {
@@ -223,6 +224,9 @@ export default function UserStoryPage({ projectId }: UserStoryPageProps) {
   const [editingStory, setEditingStory] = useState<UserStory | undefined>(
     undefined,
   );
+  const [storyDetails, setStoryDetails] = useState<
+    UserStoryDetails | undefined
+  >(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -346,17 +350,42 @@ export default function UserStoryPage({ projectId }: UserStoryPageProps) {
 
   function handleNewStory() {
     setEditingStory(undefined);
+    setStoryDetails(undefined);
     setIsModalOpen(true);
   }
 
-  function handleEditStory(story: UserStory) {
+  /** Fetches full details (tasks + sub-stories) before opening the edit modal. */
+  async function handleEditStory(story: UserStory) {
     setEditingStory(story);
+    setStoryDetails(undefined); // clear stale data while loading
     setIsModalOpen(true);
+
+    try {
+      const url = `http://localhost:8081/projects/${projectId}/userstory/${story.id}`;
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error("Failed to fetch story details");
+      const data = await res.json();
+
+      console.log("data: ", data);
+      setStoryDetails({
+        tasks: data.tasks ?? [],
+        subStories: data.subStories ?? [],
+        storyPoints: data.storyPoints,
+      });
+    } catch (err) {
+      console.error("Could not load story details:", err);
+      // Non-fatal: the modal still opens, sidebar shows empty state
+    }
   }
 
   function handleCloseModal() {
     setIsModalOpen(false);
     setEditingStory(undefined);
+    setStoryDetails(undefined);
   }
 
   // ─── Derived ──────────────────────────────────────────────
@@ -501,6 +530,7 @@ export default function UserStoryPage({ projectId }: UserStoryPageProps) {
         <UserStoryModal
           story={editingStory}
           stories={stories}
+          details={storyDetails}
           onSave={handleSaveStory}
           onArchive={editingStory ? handleArchiveStory : undefined}
           onDelete={editingStory ? handleDeleteStory : undefined}

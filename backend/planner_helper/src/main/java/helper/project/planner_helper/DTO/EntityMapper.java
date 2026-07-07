@@ -276,4 +276,49 @@ public class EntityMapper {
                 parentId
         );
     }
+
+    public static UserStoryDetailsResponse mapToUserStoryDetailsResponse(UserStoryEntity story) {
+        String parentId = story.getParent() != null ? story.getParent().getId().toString() : null;
+
+        List<UserStoryDetailsResponse.TaskSummary> tasks = new ArrayList<>();
+        if (story.getTasks() != null) {
+            for (TaskEntity task : story.getTasks()) {
+                String columnStatus = task.getColumn() != null ? task.getColumn().getName() : null;
+                tasks.add(new UserStoryDetailsResponse.TaskSummary(
+                        task.getId().toString(),
+                        task.getTitle(),
+                        columnStatus
+                ));
+            }
+        }
+
+        List<UserStoryDetailsResponse.UserStorySummary> subStories = new ArrayList<>();
+        if (story.getChildren() != null) {
+             for (UserStoryEntity child : story.getChildren()) {
+                 subStories.add(new UserStoryDetailsResponse.UserStorySummary(
+                         child.getId().toString(),
+                         child.getTitle(),
+                         child.getStatus(),
+                         child.getStoryPoints()
+                 ));
+             }
+        }
+
+        return new UserStoryDetailsResponse(
+                story.getId().toString(),
+                story.getTitle(),
+                story.getRoleContext(),
+                story.getWantContext(),
+                story.getBenefitContext(),
+                story.getDescription(),
+                story.getPriority(),
+                story.getStatus(),
+                story.getStoryPoints(),
+                story.getCreatedAt(),
+                story.getEditedAt(),
+                parentId,
+                tasks,
+                subStories
+        );
+    }
 }

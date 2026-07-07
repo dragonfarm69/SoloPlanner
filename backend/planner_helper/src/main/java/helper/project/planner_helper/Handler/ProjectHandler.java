@@ -39,6 +39,7 @@ import helper.project.planner_helper.Services.TaskService;
 import helper.project.planner_helper.Services.UserStoryService;
 import helper.project.planner_helper.DTO.UserStoryRequest;
 import helper.project.planner_helper.DTO.UserStoryResponse;
+import helper.project.planner_helper.DTO.UserStoryDetailsResponse;
 
 @RestController
 @RequestMapping("/projects")
@@ -48,7 +49,8 @@ public class ProjectHandler {
     private final TagService tagService;
     private final UserStoryService userStoryService;
 
-    public ProjectHandler(TaskService taskService, ProjectService projectService, TagService tagService, UserStoryService userStoryService) {
+    public ProjectHandler(TaskService taskService, ProjectService projectService, TagService tagService,
+            UserStoryService userStoryService) {
         this.taskService = taskService;
         this.projectService = projectService;
         this.tagService = tagService;
@@ -167,13 +169,21 @@ public class ProjectHandler {
         return this.userStoryService.getUserStories(projectId);
     }
 
+    @GetMapping("/{project_id}/userstory/{story_id}")
+    public UserStoryDetailsResponse getStoryDetails(@PathVariable("project_id") String projectId,
+            @PathVariable("story_id") String storyId) {
+        return this.userStoryService.getStoryDetails(storyId, projectId);
+    }
+
     @PostMapping("/{project_id}/userstory")
-    public UserStoryResponse addStory(@PathVariable("project_id") String projectId, @Validated @RequestBody UserStoryRequest request) {
+    public UserStoryResponse addStory(@PathVariable("project_id") String projectId,
+            @Validated @RequestBody UserStoryRequest request) {
         return this.userStoryService.createUserStory(projectId, request);
     }
 
     @PatchMapping("/{project_id}/userstory/{story_id}")
-    public UserStoryResponse editStory(@PathVariable("project_id") String projectId, @PathVariable("story_id") String storyId, @Validated @RequestBody UserStoryRequest request) {
+    public UserStoryResponse editStory(@PathVariable("project_id") String projectId,
+            @PathVariable("story_id") String storyId, @Validated @RequestBody UserStoryRequest request) {
         return this.userStoryService.updateUserStory(storyId, request);
     }
 

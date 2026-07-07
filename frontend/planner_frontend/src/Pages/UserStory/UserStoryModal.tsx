@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import type { UserStory, UserStoryStatus, Priority } from "../../types";
-import { PRIORITY_CONFIG, USER_STORY_STATUS_CONFIG } from "../../types";
+import { USER_STORY_STATUS_CONFIG } from "../../types";
+import { UserStoryForm, buildForm } from "./UserStoryForm";
+import type { FormState } from "./UserStoryForm";
+
+// ─── Public types ──────────────────────────────────────────────────────────────
 
 export interface UserStoryFormData {
   title: string;
@@ -14,69 +18,24 @@ export interface UserStoryFormData {
   parentId?: string;
 }
 
+/** Shape of the details fetched from GET /{project_id}/userstory/{story_id} */
+export interface UserStoryDetails {
+  tasks: Array<{ id: string; title: string; status: string }>;
+  subStories: Array<{ id: string; title: string; status: string; storyPoints?: number }>;
+  storyPoints?: number;
+}
+
 interface UserStoryModalProps {
   story?: UserStory;
   stories?: UserStory[];
+  details?: UserStoryDetails; // populated for editing; undefined for new
   onSave: (data: UserStoryFormData) => Promise<void>;
   onArchive?: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   onClose: () => void;
 }
 
-// Status options shown in the select — "archived" is excluded (handled via dedicated button)
-const ACTIVE_STATUSES: UserStoryStatus[] = ["open", "in_progress", "done"];
-const PRIORITIES: Priority[] = ["low", "medium", "high", "urgent"];
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function generateId(): string {
-  return `US-${100 + Math.floor(Math.random() * 900)}`;
-}
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
-
-type FormState = {
-  title: string;
-  roleContext: string;
-  wantContext: string;
-  benefitContext: string;
-  description: string;
-  priority: Priority;
-  status: UserStoryStatus;
-  storyPoints: string; // stored as string in the form, parsed on save
-  parentId: string;
-};
-
-function buildForm(story?: UserStory): FormState {
-  if (story) {
-    return {
-      title: story.title,
-      roleContext: story.roleContext || "",
-      wantContext: story.wantContext || "",
-      benefitContext: story.benefitContext || "",
-      description: story.description || "",
-      priority: story.priority,
-      status: story.status === "archived" ? "open" : story.status,
-      storyPoints: story.storyPoints != null ? String(story.storyPoints) : "",
-      parentId: story.parentId || "",
-    };
-  }
-  return {
-    title: "",
-    roleContext: "",
-    wantContext: "",
-    benefitContext: "",
-    description: "",
-    priority: "medium",
-    status: "open",
-    storyPoints: "",
-    parentId: "",
-  };
-}
-
-// ─── Confirmation Dialog ───────────────────────────────────────────────────────
+// ─── ConfirmDialog ─────────────────────────────────────────────────────────────
 
 interface ConfirmDialogProps {
   message: string;
@@ -93,7 +52,6 @@ function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel();
@@ -129,39 +87,140 @@ function ConfirmDialog({
   );
 }
 
-// ─── Custom Select ─────────────────────────────────────────────────────────────
-// Wraps a native <select> in a styled div to fix the broken native arrow on dark themes.
+// ─── RelationshipsSidebar ──────────────────────────────────────────────────────
 
-interface CustomSelectProps {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
+/** Derive a status-dot colour from a board column name (best-effort). */
+function deriveDotColor(status: string): string {
+  const s = status?.toLowerCase() ?? "";
+  if (s.includes("done") || s.includes("complete")) return "#34d399";
+  if (s.includes("progress") || s.includes("doing")) return "#fbbf24";
+  if (s.includes("block") || s.includes("review")) return "#f87171";
+  return "#6366f1";
 }
 
-function CustomSelect({ id, value, onChange, children }: CustomSelectProps) {
+/** A small card representing a linked task in the sidebar. */
+function TaskCard({ title, status }: { title: string; status: string }) {
   return (
-    <div className="us-select-wrap">
-      <select
-        id={id}
-        className="us-form-select"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {children}
-      </select>
-      <span className="us-select-arrow" aria-hidden="true">
-        ▾
+    <div className="us-rel-card">
+      <span className="us-rel-card-title">{title}</span>
+      <span
+        className="us-rel-dot"
+        style={{ background: deriveDotColor(status) }}
+        title={status}
+        aria-label={`Status: ${status}`}
+      />
+    </div>
+  );
+}
+
+/** A small card representing a sub-story or parent story in the sidebar. */
+function StoryCard({
+  title,
+  storyPoints,
+  status,
+}: {
+  title: string;
+  storyPoints?: number;
+  status: string;
+}) {
+  const cfg =
+    USER_STORY_STATUS_CONFIG[status as UserStoryStatus] ??
+    USER_STORY_STATUS_CONFIG["open"];
+
+  console.log(storyPoints);
+
+  return (
+    <div className="us-rel-card">
+      <span className="us-rel-card-title">{title}</span>
+      <span className="us-rel-card-sub" style={{ color: cfg.color }}>
+        {storyPoints != null
+          ? `${storyPoints} pt${storyPoints !== 1 ? "s" : ""}`
+          : "—"}
       </span>
     </div>
   );
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+interface RelationshipsSidebarProps {
+  details?: UserStoryDetails;
+  /** The parent story object, looked up from the full stories list */
+  parentStory?: UserStory;
+}
+
+function RelationshipsSidebar({
+  details,
+  parentStory,
+}: RelationshipsSidebarProps) {
+  const tasks = details?.tasks ?? [];
+  const subStories = details?.subStories ?? [];
+
+  return (
+    <aside className="us-modal-sidebar" aria-label="Relationships">
+      <h3 className="us-sidebar-title">Relationships</h3>
+
+      <div className="us-sidebar-cols">
+        {/* Linked Tasks */}
+        <div className="us-sidebar-col">
+          <span className="us-sidebar-section-title">Linked Tasks</span>
+          <div className="us-sidebar-cards">
+            {tasks.length === 0 ? (
+              <span className="us-sidebar-empty">None</span>
+            ) : (
+              tasks.map((t) => (
+                <TaskCard key={t.id} title={t.title} status={t.status} />
+              ))
+            )}
+          </div>
+          <button
+            className="us-rel-add-btn"
+            type="button"
+            aria-label="Add linked task"
+            title="Add linked task"
+          >
+            +
+          </button>
+        </div>
+
+        {/* Sub-stories (or parent story when editing a child) */}
+        <div className="us-sidebar-col">
+          <span className="us-sidebar-section-title">
+            {parentStory ? "Parent Story" : "Sub-Stories"}
+          </span>
+          <div className="us-sidebar-cards">
+            {parentStory ? (
+              <StoryCard
+                title={parentStory.title}
+                storyPoints={parentStory.storyPoints}
+                status={parentStory.status}
+              />
+            ) : subStories.length === 0 ? (
+              <span className="us-sidebar-empty">None</span>
+            ) : (
+              subStories.map((s) => (
+                <StoryCard key={s.id} title={s.title} status={s.status} storyPoints={s.storyPoints} />
+              ))
+            )}
+          </div>
+          <button
+            className="us-rel-add-btn"
+            type="button"
+            aria-label="Add story relationship"
+            title="Add story relationship"
+          >
+            +
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ─── UserStoryModal ────────────────────────────────────────────────────────────
 
 export default function UserStoryModal({
   story,
   stories = [],
+  details,
   onSave,
   onArchive,
   onDelete,
@@ -172,7 +231,7 @@ export default function UserStoryModal({
   const [form, setForm] = useState<FormState>(buildForm(story));
   const [confirm, setConfirm] = useState<"archive" | "delete" | null>(null);
 
-  // Reset when story prop changes
+  // Reset form whenever the story being edited changes
   useEffect(() => {
     setForm(buildForm(story));
   }, [story]);
@@ -186,9 +245,9 @@ export default function UserStoryModal({
     return () => document.removeEventListener("keydown", handleKey);
   }, [onClose, confirm]);
 
-  // ─── Field helpers ────────────────────────────────────────
+  // ─── Field update helper ──────────────────────────────────
 
-  function set(field: keyof FormState, value: string) {
+  function setField(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -198,9 +257,9 @@ export default function UserStoryModal({
     e.preventDefault();
     if (!form.title.trim()) return;
 
-    const points =
+    const storyPoints =
       form.storyPoints.trim() === "" ? undefined : Number(form.storyPoints);
-    const parentVal = form.parentId.trim() === "" ? undefined : form.parentId;
+    const parentId = form.parentId.trim() === "" ? undefined : form.parentId;
 
     onSave({
       title: form.title,
@@ -210,32 +269,31 @@ export default function UserStoryModal({
       description: form.description,
       priority: form.priority,
       status: form.status,
-      storyPoints: points,
-      parentId: parentVal,
+      storyPoints,
+      parentId,
     })
-      .then(() => {
-        onClose();
-      })
-      .catch((err) => {
-        console.error("Save failed:", err);
-      });
+      .then(() => onClose())
+      .catch((err) => console.error("Save failed:", err));
   }
 
-  // ─── Danger action handlers ───────────────────────────────
+  // ─── Danger actions ───────────────────────────────────────
 
   function handleConfirmArchive() {
-    if (story && onArchive) {
-      onArchive(story.id);
-    }
+    if (story && onArchive) onArchive(story.id);
     onClose();
   }
 
   function handleConfirmDelete() {
-    if (story && onDelete) {
-      onDelete(story.id);
-    }
+    if (story && onDelete) onDelete(story.id);
     onClose();
   }
+
+  // ─── Derived ─────────────────────────────────────────────
+
+  const parentStory =
+    form.parentId && isEditing
+      ? stories.find((s) => s.id === form.parentId)
+      : undefined;
 
   // ─── Render ───────────────────────────────────────────────
 
@@ -265,179 +323,21 @@ export default function UserStoryModal({
             </button>
           </div>
 
-          {/* ── Form ── */}
-          <form
-            id="us-story-form"
-            onSubmit={handleSubmit}
-            className="us-modal-form"
-          >
-            {/* Title */}
-            <div className="us-form-group">
-              <label htmlFor="us-input-title" className="us-form-label">
-                Title <span className="us-form-required">*</span>
-              </label>
-              <input
-                id="us-input-title"
-                className="us-form-input"
-                type="text"
-                value={form.title}
-                onChange={(e) => set("title", e.target.value)}
-                placeholder="e.g. User Authentication"
-                maxLength={120}
-                required
-                autoFocus
-              />
-            </div>
+          {/* ── Two-column body ── */}
+          <div className="us-modal-body">
+            <UserStoryForm
+              form={form}
+              setField={setField}
+              editingStory={story}
+              stories={stories}
+              onSubmit={handleSubmit}
+            />
 
-            {/* Story Narrative — 3 parts */}
-            <div className="us-form-group">
-              <label className="us-form-label">Story Narrative</label>
-
-              <div className="us-narrative-fields">
-                <div className="us-narrative-row">
-                  <span className="us-narrative-prefix">As a…</span>
-                  <input
-                    id="us-input-role"
-                    className="us-form-input us-narrative-input"
-                    type="text"
-                    value={form.roleContext}
-                    onChange={(e) => set("roleContext", e.target.value)}
-                    placeholder="e.g. Registered User"
-                    maxLength={120}
-                  />
-                </div>
-
-                <div className="us-narrative-row">
-                  <span className="us-narrative-prefix">I want…</span>
-                  <input
-                    id="us-input-want"
-                    className="us-form-input us-narrative-input"
-                    type="text"
-                    value={form.wantContext}
-                    onChange={(e) => set("wantContext", e.target.value)}
-                    placeholder="e.g. to securely log in"
-                    maxLength={200}
-                  />
-                </div>
-
-                <div className="us-narrative-row">
-                  <span className="us-narrative-prefix">So that…</span>
-                  <textarea
-                    id="us-input-benefit"
-                    className="us-form-textarea us-narrative-input"
-                    rows={2}
-                    value={form.benefitContext}
-                    onChange={(e) => set("benefitContext", e.target.value)}
-                    placeholder="e.g. I can access my personal dashboard"
-                    maxLength={200}
-                  />
-                </div>
-              </div>
-
-              <span className="us-form-hint">
-                Keep your narrative concise. Use the description box below for
-                technical details.
-              </span>
-            </div>
-
-            {/* Description */}
-            <div className="us-form-group">
-              <label htmlFor="us-input-description" className="us-form-label">
-                Description
-              </label>
-              <textarea
-                id="us-input-description"
-                className="us-form-textarea"
-                rows={4}
-                value={form.description}
-                onChange={(e) => set("description", e.target.value)}
-                placeholder="Additional context, acceptance criteria, notes…"
-                maxLength={1000}
-              />
-            </div>
-
-            {/* Story Points + Parent Story row */}
-            <div className="us-form-row">
-              <div className="us-form-group">
-                <label htmlFor="us-input-points" className="us-form-label">
-                  Story Points
-                </label>
-                <input
-                  id="us-input-points"
-                  className="us-form-input"
-                  type="number"
-                  min={0}
-                  max={999}
-                  value={form.storyPoints}
-                  onChange={(e) => set("storyPoints", e.target.value)}
-                  placeholder="—"
-                />
-              </div>
-
-              <div className="us-form-group">
-                <label htmlFor="us-input-parent" className="us-form-label">
-                  Parent Story
-                </label>
-                <CustomSelect
-                  id="us-input-parent"
-                  value={form.parentId}
-                  onChange={(v) => set("parentId", v)}
-                >
-                  <option value="">None (Epic)</option>
-                  {stories
-                    .filter(
-                      (s) => s.id !== story?.id && s.status !== "archived",
-                    )
-                    .map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.title}
-                      </option>
-                    ))}
-                </CustomSelect>
-              </div>
-            </div>
-
-            {/* Priority + Status row */}
-            <div className="us-form-row">
-              <div className="us-form-group">
-                <label htmlFor="us-input-priority" className="us-form-label">
-                  Priority
-                </label>
-                <CustomSelect
-                  id="us-input-priority"
-                  value={form.priority}
-                  onChange={(v) => set("priority", v)}
-                >
-                  {PRIORITIES.map((p) => (
-                    <option key={p} value={p}>
-                      {PRIORITY_CONFIG[p].label}
-                    </option>
-                  ))}
-                </CustomSelect>
-              </div>
-
-              <div className="us-form-group">
-                <label htmlFor="us-input-status" className="us-form-label">
-                  Status
-                </label>
-                <CustomSelect
-                  id="us-input-status"
-                  value={form.status}
-                  onChange={(v) => set("status", v)}
-                >
-                  {ACTIVE_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {USER_STORY_STATUS_CONFIG[s].label}
-                    </option>
-                  ))}
-                </CustomSelect>
-              </div>
-            </div>
-          </form>
+            <RelationshipsSidebar details={details} parentStory={parentStory} />
+          </div>
 
           {/* ── Footer ── */}
           <div className="us-modal-footer">
-            {/* Danger zone — only shown when editing */}
             {isEditing && (
               <div className="us-modal-danger-zone">
                 {onArchive && (
@@ -448,7 +348,7 @@ export default function UserStoryModal({
                     onClick={() => setConfirm("archive")}
                     title="Archive this story"
                   >
-                    ▤ Archive
+                    Archive
                   </button>
                 )}
                 {onDelete && (
@@ -459,7 +359,7 @@ export default function UserStoryModal({
                     onClick={() => setConfirm("delete")}
                     title="Delete this story permanently"
                   >
-                    🗑 Delete
+                    Delete
                   </button>
                 )}
               </div>

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.UserStoryRequest;
 import helper.project.planner_helper.DTO.UserStoryResponse;
+import helper.project.planner_helper.DTO.UserStoryDetailsResponse;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.UserStoryEntity;
 import helper.project.planner_helper.Repository.ProjectRepository;
@@ -112,5 +113,17 @@ public class UserStoryService {
     public void deleteUserStory(String storyId) {
         UUID storyUUID = UUID.fromString(storyId);
         userStoryRepository.deleteById(storyUUID);
+    }
+
+    public UserStoryDetailsResponse getStoryDetails(String storyId, String projectId) {
+        UUID storyUUID = UUID.fromString(storyId);
+        UUID projectUUID = UUID.fromString(projectId);
+
+        projectRepository.findById(projectUUID)
+                .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));
+
+        UserStoryEntity story = userStoryRepository.findById(storyUUID)
+                .orElseThrow(() -> new RuntimeException("User story not found: " + storyId));
+        return EntityMapper.mapToUserStoryDetailsResponse(story);
     }
 }
