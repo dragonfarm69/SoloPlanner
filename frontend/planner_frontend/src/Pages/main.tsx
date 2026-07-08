@@ -4,7 +4,6 @@ import BoardHeader from "../components/BoardHeader";
 import KanbanBoard from "./Kanban/KanbanBoard";
 import TagManagement from "../components/TagManagement";
 import ArchivedTasksPage from "../components/ArchivedTasksPage";
-import UserStoryPage from "./UserStory/UserStoryPage";
 import TaskModal from "../components/TaskModal";
 import { useMainPage } from "./useMainPage";
 
@@ -70,8 +69,6 @@ export default function MainPage() {
               onAddTask={handleAddTaskToColumn}
             />
           </>
-        ) : activeTab === "stories" ? (
-          <UserStoryPage projectId={projectId!} />
         ) : activeTab === "tags" ? (
           <TagManagement projectId={projectId!} />
         ) : (

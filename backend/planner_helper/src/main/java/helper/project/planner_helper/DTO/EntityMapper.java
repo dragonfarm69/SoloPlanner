@@ -17,6 +17,8 @@ import helper.project.planner_helper.Database.TaskColumn;
 import helper.project.planner_helper.Database.TaskEntity;
 import helper.project.planner_helper.Database.UserStoryEntity;
 import helper.project.planner_helper.Database.UserEntity;
+import helper.project.planner_helper.Database.EpicEntity;
+import helper.project.planner_helper.DTO.EpicResponse;
 
 public class EntityMapper {
     public static TaskResponse mapToTaskResponse(TaskEntity task) {
@@ -253,11 +255,10 @@ public class EntityMapper {
         if (story.getTasks() != null) {
             taskCount = story.getTasks().size();
             completedTaskCount = (int) story.getTasks().stream()
-                    .filter(t -> t.getColumn() != null && t.getColumn().getCategory() == helper.project.planner_helper.Types.Category.DONE)
+                    .filter(t -> t.getColumn() != null
+                            && t.getColumn().getCategory() == helper.project.planner_helper.Types.Category.DONE)
                     .count();
         }
-        
-        String parentId = story.getParent() != null ? story.getParent().getId().toString() : null;
 
         return new UserStoryResponse(
                 story.getId().toString(),
@@ -272,14 +273,10 @@ public class EntityMapper {
                 taskCount,
                 completedTaskCount,
                 story.getCreatedAt(),
-                story.getEditedAt(),
-                parentId
-        );
+                story.getEditedAt());
     }
 
     public static UserStoryDetailsResponse mapToUserStoryDetailsResponse(UserStoryEntity story) {
-        String parentId = story.getParent() != null ? story.getParent().getId().toString() : null;
-
         List<UserStoryDetailsResponse.TaskSummary> tasks = new ArrayList<>();
         if (story.getTasks() != null) {
             for (TaskEntity task : story.getTasks()) {
@@ -287,23 +284,9 @@ public class EntityMapper {
                 tasks.add(new UserStoryDetailsResponse.TaskSummary(
                         task.getId().toString(),
                         task.getTitle(),
-                        columnStatus
-                ));
+                        columnStatus));
             }
         }
-
-        List<UserStoryDetailsResponse.UserStorySummary> subStories = new ArrayList<>();
-        if (story.getChildren() != null) {
-             for (UserStoryEntity child : story.getChildren()) {
-                 subStories.add(new UserStoryDetailsResponse.UserStorySummary(
-                         child.getId().toString(),
-                         child.getTitle(),
-                         child.getStatus(),
-                         child.getStoryPoints()
-                 ));
-             }
-        }
-
         return new UserStoryDetailsResponse(
                 story.getId().toString(),
                 story.getTitle(),
@@ -316,9 +299,41 @@ public class EntityMapper {
                 story.getStoryPoints(),
                 story.getCreatedAt(),
                 story.getEditedAt(),
-                parentId,
-                tasks,
-                subStories
-        );
+                tasks);
+    }
+
+    public static EpicResponse mapToEpicResponse(EpicEntity epic) {
+        List<EpicResponse.UserStorySummary> storySummaries = buildUserStorySummaries(epic);
+
+        String creatorId = epic.getCreator() != null ? epic.getCreator().getId().toString() : null;
+        String creatorUsername = epic.getCreator() != null ? epic.getCreator().getUsername() : null;
+
+        return new EpicResponse(
+                epic.getId().toString(),
+                epic.getTitle(),
+                epic.getDescription(),
+                epic.getPriority(),
+                epic.getStatus(),
+                epic.isArchived(),
+                creatorId,
+                creatorUsername,
+                storySummaries,
+                epic.getCreatedAt(),
+                epic.getEditedAt());
+    }
+
+    private static List<EpicResponse.UserStorySummary> buildUserStorySummaries(EpicEntity epic) {
+        List<EpicResponse.UserStorySummary> summaries = new ArrayList<>();
+        if (epic.getUserStories() == null) {
+            return summaries;
+        }
+        for (UserStoryEntity story : epic.getUserStories()) {
+            summaries.add(new EpicResponse.UserStorySummary(
+                    story.getId().toString(),
+                    story.getTitle(),
+                    story.getStatus(),
+                    story.getStoryPoints()));
+        }
+        return summaries;
     }
 }

@@ -11,8 +11,10 @@ import helper.project.planner_helper.DTO.EntityMapper;
 import helper.project.planner_helper.DTO.UserStoryRequest;
 import helper.project.planner_helper.DTO.UserStoryResponse;
 import helper.project.planner_helper.DTO.UserStoryDetailsResponse;
+import helper.project.planner_helper.Database.EpicEntity;
 import helper.project.planner_helper.Database.ProjectEntity;
 import helper.project.planner_helper.Database.UserStoryEntity;
+import helper.project.planner_helper.Repository.EpicRepository;
 import helper.project.planner_helper.Repository.ProjectRepository;
 import helper.project.planner_helper.Repository.UserStoryRepository;
 
@@ -21,10 +23,13 @@ import helper.project.planner_helper.Repository.UserStoryRepository;
 public class UserStoryService {
     private final UserStoryRepository userStoryRepository;
     private final ProjectRepository projectRepository;
+    private final EpicRepository epicRepository;
 
-    public UserStoryService(UserStoryRepository userStoryRepository, ProjectRepository projectRepository) {
+    public UserStoryService(UserStoryRepository userStoryRepository, ProjectRepository projectRepository,
+            EpicRepository epicRepository) {
         this.userStoryRepository = userStoryRepository;
         this.projectRepository = projectRepository;
+        this.epicRepository = epicRepository;
     }
 
     public List<UserStoryResponse> getUserStories(String projectId) {
@@ -54,12 +59,7 @@ public class UserStoryService {
             story.setStatus(request.status());
         }
         story.setStoryPoints(request.storyPoints());
-
-        if (request.parentId() != null && !request.parentId().trim().isEmpty()) {
-            UserStoryEntity parent = userStoryRepository.findById(UUID.fromString(request.parentId()))
-                    .orElseThrow(() -> new RuntimeException("Parent story not found: " + request.parentId()));
-            story.setParent(parent);
-        }
+        linkEpicIfProvided(story, request.epicId());
 
         UserStoryEntity saved = userStoryRepository.save(story);
         return EntityMapper.mapToUserStoryResponse(saved);
@@ -98,14 +98,6 @@ public class UserStoryService {
         }
         story.setStoryPoints(request.storyPoints()); // can be set to null
 
-        if (request.parentId() != null && !request.parentId().trim().isEmpty()) {
-            UserStoryEntity parent = userStoryRepository.findById(UUID.fromString(request.parentId()))
-                    .orElseThrow(() -> new RuntimeException("Parent story not found: " + request.parentId()));
-            story.setParent(parent);
-        } else {
-            story.setParent(null);
-        }
-
         UserStoryEntity saved = userStoryRepository.save(story);
         return EntityMapper.mapToUserStoryResponse(saved);
     }
@@ -125,5 +117,15 @@ public class UserStoryService {
         UserStoryEntity story = userStoryRepository.findById(storyUUID)
                 .orElseThrow(() -> new RuntimeException("User story not found: " + storyId));
         return EntityMapper.mapToUserStoryDetailsResponse(story);
+    }
+
+    private void linkEpicIfProvided(UserStoryEntity story, String epicId) {
+        if (epicId == null || epicId.isBlank()) {
+            return;
+        }
+        UUID epicUUID = UUID.fromString(epicId);
+        EpicEntity epic = epicRepository.findById(epicUUID)
+                .orElseThrow(() -> new RuntimeException("Epic not found: " + epicId));
+        story.setEpic(epic);
     }
 }

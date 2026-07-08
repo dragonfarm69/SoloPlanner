@@ -2,26 +2,21 @@ package helper.project.planner_helper.DTO;
 
 import java.time.Instant;
 import java.util.List;
+
 import helper.project.planner_helper.Types.Priority;
 
-public record UserStoryDetailsResponse(
+public record EpicResponse(
                 String id,
                 String title,
-                String roleContext,
-                String wantContext,
-                String benefitContext,
                 String description,
                 Priority priority,
                 String status,
-                Integer storyPoints,
+                boolean archived,
+                String creatorId,
+                String creatorUsername,
+                List<UserStorySummary> userStories,
                 Instant createdAt,
-                Instant editedAt,
-                List<TaskSummary> tasks) {
-        public record TaskSummary(
-                        String id,
-                        String title,
-                        String status) {
-        }
+                Instant editedAt) {
 
         public record UserStorySummary(
                         String id,

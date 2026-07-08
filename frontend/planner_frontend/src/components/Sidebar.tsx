@@ -8,8 +8,8 @@ interface SidebarProps {
   completedTasks: number;
   filterPriority: Priority | null;
   onFilterPriority: (priority: Priority | null) => void;
-  activeTab: "board" | "stories" | "tags" | "archive";
-  onTabChange: (tab: "board" | "stories" | "tags" | "archive") => void;
+  activeTab: "board" | "epics" | "tags" | "archive";
+  onTabChange: (tab: "board" | "epics" | "tags" | "archive") => void;
 }
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
@@ -55,14 +55,14 @@ export default function Sidebar({
           Board
         </button>
         <button
-          className={`sidebar-nav-item ${activeTab === "stories" ? "active" : ""}`}
-          id="nav-stories"
-          onClick={() => onTabChange("stories")}
+          className={`sidebar-nav-item ${activeTab === "epics" ? "active" : ""}`}
+          id="nav-epics"
+          onClick={() => onTabChange("epics")}
         >
           <span className="sidebar-nav-icon" aria-hidden="true">
-            📋
+            🗂
           </span>
-          User Stories
+          Epics
         </button>
         <button className="sidebar-nav-item" id="nav-my-tasks" disabled>
           <span className="sidebar-nav-icon" aria-hidden="true">

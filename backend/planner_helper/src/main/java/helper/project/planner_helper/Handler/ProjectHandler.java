@@ -40,6 +40,9 @@ import helper.project.planner_helper.Services.UserStoryService;
 import helper.project.planner_helper.DTO.UserStoryRequest;
 import helper.project.planner_helper.DTO.UserStoryResponse;
 import helper.project.planner_helper.DTO.UserStoryDetailsResponse;
+import helper.project.planner_helper.DTO.EpicRequest;
+import helper.project.planner_helper.DTO.EpicResponse;
+import helper.project.planner_helper.Services.EpicService;
 
 @RestController
 @RequestMapping("/projects")
@@ -48,13 +51,15 @@ public class ProjectHandler {
     private final ProjectService projectService;
     private final TagService tagService;
     private final UserStoryService userStoryService;
+    private final EpicService epicService;
 
     public ProjectHandler(TaskService taskService, ProjectService projectService, TagService tagService,
-            UserStoryService userStoryService) {
+            UserStoryService userStoryService, EpicService epicService) {
         this.taskService = taskService;
         this.projectService = projectService;
         this.tagService = tagService;
         this.userStoryService = userStoryService;
+        this.epicService = epicService;
     }
 
     @GetMapping
@@ -198,5 +203,29 @@ public class ProjectHandler {
         // do something
         return "deleted project";
         // this.projectService.seet
+    }
+
+    @GetMapping("/{project_id}/epics")
+    public List<EpicResponse> getEpics(@PathVariable("project_id") String projectId) {
+        return this.epicService.getEpics(projectId);
+    }
+
+    @GetMapping("/{project_id}/epics/{epic_id}")
+    public EpicResponse getEpicDetails(@PathVariable("project_id") String projectId,
+            @PathVariable("epic_id") String epicId) {
+        return this.epicService.getEpicDetails(epicId, projectId);
+    }
+
+    @PostMapping("/{project_id}/epics")
+    public EpicResponse createEpic(@PathVariable("project_id") String projectId,
+            @Validated @RequestBody EpicRequest request) {
+        return this.epicService.createEpic(projectId, request);
+    }
+
+    @PatchMapping("/{project_id}/epics/{epic_id}")
+    public EpicResponse updateEpic(@PathVariable("project_id") String projectId,
+            @PathVariable("epic_id") String epicId,
+            @Validated @RequestBody EpicRequest request) {
+        return this.epicService.updateEpic(epicId, request);
     }
 }

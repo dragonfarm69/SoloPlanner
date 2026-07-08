@@ -48,14 +48,10 @@ public class UserStoryEntity {
     @JoinColumn(name = "creator_id")
     private UserEntity creator;
 
-    // child user stories
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserStoryEntity> children;
-
-    // parent user story (optional)
+    // link to epic (optional — a story may not yet be assigned to an epic)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id")
-    private UserStoryEntity parent;
+    @JoinColumn(name = "epic_id")
+    private EpicEntity epic;
 
     // timestamps — auto-managed by Hibernate, no manual Instant.now() needed
     @CreationTimestamp
@@ -119,20 +115,12 @@ public class UserStoryEntity {
         this.creator = creator;
     }
 
-    public List<UserStoryEntity> getChildren() {
-        return children;
+    public EpicEntity getEpic() {
+        return epic;
     }
 
-    public void setChildren(List<UserStoryEntity> children) {
-        this.children = children;
-    }
-
-    public UserStoryEntity getParent() {
-        return parent;
-    }
-
-    public void setParent(UserStoryEntity parent) {
-        this.parent = parent;
+    public void setEpic(EpicEntity epic) {
+        this.epic = epic;
     }
 
     public Instant getCreatedAt() {

@@ -17,8 +17,8 @@ export interface UseMainPageResult {
   setSearchQuery: Dispatch<SetStateAction<string>>;
   filterPriority: Priority | null;
   setFilterPriority: Dispatch<SetStateAction<Priority | null>>;
-  activeTab: "board" | "tags" | "archive";
-  setActiveTab: Dispatch<SetStateAction<"board" | "tags" | "archive">>;
+  activeTab: "board" | "epics" | "tags" | "archive";
+  setActiveTab: Dispatch<SetStateAction<"board" | "epics" | "tags" | "archive">>;
   isModalOpen: boolean;
   setIsModalOpen: Dispatch<SetStateAction<boolean>>;
   editingTask: Task | null;
@@ -40,7 +40,7 @@ export function useMainPage(): UseMainPageResult {
   // ─── UI State ───────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPriority, setFilterPriority] = useState<Priority | null>(null);
-  const [activeTab, setActiveTab] = useState<"board" | "tags" | "archive">("board");
+  const [activeTab, setActiveTab] = useState<"board" | "epics" | "tags" | "archive">("board");
 
   // ─── Modal State ────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
