@@ -35,6 +35,7 @@ export default function EpicsPage({ projectId }: { projectId: string }) {
   const [activeEpicIdForStory, setActiveEpicIdForStory] = useState<
     string | null
   >(null);
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchEpics() {
@@ -119,37 +120,58 @@ export default function EpicsPage({ projectId }: { projectId: string }) {
     }
   };
 
-  const handleCreateUserStory = async (data: any) => {
-    if (!activeEpicIdForStory) return;
+  const handleSaveUserStory = async (data: any, storyId?: string) => {
     try {
-      console.log(activeEpicIdForStory);
       const payload = {
         title: data.title,
         roleContext: data.roleContext,
         wantContext: data.wantContext,
         benefitContext: data.benefitContext,
         description: data.description,
-        priority: data.priority.toUpperCase(),
+        priority: data.priority?.toUpperCase(),
         status: data.status,
         storyPoints: data.storyPoints,
-        epicId: activeEpicIdForStory,
+        creatorId: data.creatorId,
+        epicId: data.epicId, // Can be null/undefined if updating
       };
 
-      const res = await fetch(
-        `http://localhost:8081/projects/${projectId}/userstory`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
+      const url = storyId
+        ? `http://localhost:8081/projects/${projectId}/userstory/${storyId}`
+        : `http://localhost:8081/projects/${projectId}/userstory`;
+      const method = storyId ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
       if (res.ok) {
         setActiveEpicIdForStory(null);
+        setEditingStoryId(null);
         window.location.reload();
       }
     } catch (e) {
-      console.error("Failed to create user story:", e);
+      console.error("Failed to save user story:", e);
+    }
+  };
+
+  const handleDeleteUserStory = async (storyId: string) => {
+    try {
+      const res = await fetch(
+        `http://localhost:8081/projects/${projectId}/userstory/${storyId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
+      if (res.ok) {
+        setEditingStoryId(null);
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error("Failed to delete user story:", e);
     }
   };
 
@@ -239,7 +261,12 @@ export default function EpicsPage({ projectId }: { projectId: string }) {
                 {isExpanded && (
                   <div className="nested-stories">
                     {epic.userStories.map((story) => (
-                      <div key={story.id} className="user-story-row">
+                      <div 
+                        key={story.id} 
+                        className="user-story-row"
+                        onClick={() => setEditingStoryId(story.id)}
+                        style={{ cursor: "pointer" }}
+                      >
                         <div className="story-col-points">{story.storyPoints ?? 0} pts</div>
                         <div className="story-col-title">
                           {story.title}
@@ -292,10 +319,17 @@ export default function EpicsPage({ projectId }: { projectId: string }) {
         />
       )}
 
-      {activeEpicIdForStory && (
+      {(activeEpicIdForStory || editingStoryId) && (
         <UserStoryModal
-          onClose={() => setActiveEpicIdForStory(null)}
-          onSave={handleCreateUserStory}
+          projectId={projectId}
+          epicId={activeEpicIdForStory || undefined}
+          storyId={editingStoryId || undefined}
+          onClose={() => {
+            setActiveEpicIdForStory(null);
+            setEditingStoryId(null);
+          }}
+          onSave={handleSaveUserStory}
+          onDelete={handleDeleteUserStory}
         />
       )}
     </div>

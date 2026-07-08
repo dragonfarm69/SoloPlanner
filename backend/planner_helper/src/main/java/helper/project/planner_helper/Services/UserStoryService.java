@@ -13,9 +13,11 @@ import helper.project.planner_helper.DTO.UserStoryResponse;
 import helper.project.planner_helper.DTO.UserStoryDetailsResponse;
 import helper.project.planner_helper.Database.EpicEntity;
 import helper.project.planner_helper.Database.ProjectEntity;
+import helper.project.planner_helper.Database.UserEntity;
 import helper.project.planner_helper.Database.UserStoryEntity;
 import helper.project.planner_helper.Repository.EpicRepository;
 import helper.project.planner_helper.Repository.ProjectRepository;
+import helper.project.planner_helper.Repository.UserRepository;
 import helper.project.planner_helper.Repository.UserStoryRepository;
 
 @Service
@@ -24,12 +26,14 @@ public class UserStoryService {
     private final UserStoryRepository userStoryRepository;
     private final ProjectRepository projectRepository;
     private final EpicRepository epicRepository;
+    private final UserRepository userRepository;
 
     public UserStoryService(UserStoryRepository userStoryRepository, ProjectRepository projectRepository,
-            EpicRepository epicRepository) {
+            EpicRepository epicRepository, UserRepository userRepository) {
         this.userStoryRepository = userStoryRepository;
         this.projectRepository = projectRepository;
         this.epicRepository = epicRepository;
+        this.userRepository = userRepository;
     }
 
     public List<UserStoryResponse> getUserStories(String projectId) {
@@ -42,8 +46,13 @@ public class UserStoryService {
 
     public UserStoryResponse createUserStory(String projectId, UserStoryRequest request) {
         UUID projectUUID = UUID.fromString(projectId);
+        UUID creatorUUID = UUID.fromString(request.creatorId());
+
         ProjectEntity project = projectRepository.findById(projectUUID)
                 .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));
+
+        UserEntity creator = userRepository.findById(creatorUUID)
+                .orElseThrow(() -> new RuntimeException("User not found: " + request.creatorId()));
 
         UserStoryEntity story = new UserStoryEntity();
         story.setProject(project);
@@ -58,7 +67,9 @@ public class UserStoryService {
         if (request.status() != null) {
             story.setStatus(request.status());
         }
+        story.setCreator(creator);
         story.setStoryPoints(request.storyPoints());
+
         linkEpicIfProvided(story, request.epicId());
 
         UserStoryEntity saved = userStoryRepository.save(story);

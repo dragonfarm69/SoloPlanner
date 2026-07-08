@@ -16,7 +16,8 @@ public record UserStoryDetailsResponse(
                 Integer storyPoints,
                 Instant createdAt,
                 Instant editedAt,
-                List<TaskSummary> tasks) {
+                List<TaskSummary> tasks,
+                String creatorName) {
         public record TaskSummary(
                         String id,
                         String title,

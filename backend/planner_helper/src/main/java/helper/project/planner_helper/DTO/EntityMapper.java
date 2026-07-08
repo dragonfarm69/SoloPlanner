@@ -299,7 +299,8 @@ public class EntityMapper {
                 story.getStoryPoints(),
                 story.getCreatedAt(),
                 story.getEditedAt(),
-                tasks);
+                tasks,
+                story.getCreator().getUsername().toString());
     }
 
     public static EpicResponse mapToEpicResponse(EpicEntity epic) {
