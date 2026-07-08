@@ -6,6 +6,7 @@ import TagManagement from "../components/TagManagement";
 import ArchivedTasksPage from "../components/ArchivedTasksPage";
 import TaskModal from "../components/TaskModal";
 import { useMainPage } from "./useMainPage";
+import EpicsPage from "./Epics/EpicsPage";
 
 export default function MainPage() {
   const {
@@ -71,6 +72,8 @@ export default function MainPage() {
           </>
         ) : activeTab === "tags" ? (
           <TagManagement projectId={projectId!} />
+        ) : activeTab === "epics" ? (
+          <EpicsPage projectId={projectId!} />
         ) : (
           <ArchivedTasksPage projectId={projectId!} />
         )}
